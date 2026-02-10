@@ -126,14 +126,14 @@ function setupDropdowns(){
   });
 
   // Sort
-  // const sortMenu = sortDrop.querySelector(".menu");
-  // buildMenu(sortMenu, SORT_OPTIONS, currentSort);
-  // wireDropdown(sortDrop, (val)=>{
-  //   currentSort = val;
-  //   setText(sortValue, val);
-  //   buildMenu(sortMenu, SORT_OPTIONS, currentSort);
-  //   applyFilters();
-  // });
+  const sortMenu = sortDrop.querySelector(".menu");
+  buildMenu(sortMenu, SORT_OPTIONS, currentSort);
+  wireDropdown(sortDrop, (val)=>{
+    currentSort = val;
+    setText(sortValue, val);
+    buildMenu(sortMenu, SORT_OPTIONS, currentSort);
+    applyFilters();
+  });
 }
 
 function wireSearch(){
