@@ -135,52 +135,27 @@ export function buildMenu(menuEl, items, activeValue){
   }
 }
 
-// export function wireDropdown(dropRoot, onPick){
-//   const btn = qs(".dropBtn", dropRoot);
-//   const menu = qs(".menu", dropRoot);
-
-//   btn.addEventListener("click", (e)=>{
-//     e.stopPropagation();
-//     const isOpen = menu.classList.contains("open");
-//     document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
-//     if(!isOpen) menu.classList.add("open");
-//   });
-
-//   menu.addEventListener("click", (e)=>{
-//     const b = e.target.closest("button[data-value]");
-//     if(!b) return;
-//     const value = b.getAttribute("data-value");
-//     onPick?.(value);
-//     menu.classList.remove("open");
-//   });
-
-//   document.addEventListener("click", ()=> menu.classList.remove("open"));
-// }
 export function wireDropdown(dropRoot, onPick){
   const btn = qs(".dropBtn", dropRoot);
   const menu = qs(".menu", dropRoot);
 
-  function close(){
-    menu.classList.remove("open");
-    dropRoot.classList.remove("open");
-  }
-
   btn.addEventListener("click", (e)=>{
     e.stopPropagation();
-
-    // закрыть все другие
-    document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
-    document.querySelectorAll(".dropdown.open").forEach(d => d.classList.remove("open"));
-
-    // открыть/закрыть этот
     const isOpen = menu.classList.contains("open");
-    if(isOpen){
-      close();
-    }else{
-      menu.classList.add("open");
-      dropRoot.classList.add("open");
-    }
+    document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
+    if(!isOpen) menu.classList.add("open");
   });
+
+  menu.addEventListener("click", (e)=>{
+    const b = e.target.closest("button[data-value]");
+    if(!b) return;
+    const value = b.getAttribute("data-value");
+    onPick?.(value);
+    menu.classList.remove("open");
+  });
+
+  document.addEventListener("click", ()=> menu.classList.remove("open"));
+}
 
   menu.addEventListener("click", (e)=>{
     const b = e.target.closest("button[data-value]");
