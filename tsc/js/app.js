@@ -9,7 +9,7 @@ import {
 let allDishes = [];
 let currentDelivery = "Все";
 let currentCategory = "Все";
-let currentSort = "Название A→Z";
+//let currentSort = "Название A→Z";
 let query = "";
 let favOnly = false;
 
@@ -48,7 +48,7 @@ function applyFilters(){
     return okDel && okCat && okQ && okFav;
   });
 
-  filtered = sortDishes(filtered, currentSort);
+  //filtered = sortDishes(filtered, currentSort);
   renderGrid(filtered);
 }
 
@@ -126,14 +126,14 @@ function setupDropdowns(){
   });
 
   // Sort
-  const sortMenu = sortDrop.querySelector(".menu");
-  buildMenu(sortMenu, SORT_OPTIONS, currentSort);
-  wireDropdown(sortDrop, (val)=>{
-    currentSort = val;
-    setText(sortValue, val);
-    buildMenu(sortMenu, SORT_OPTIONS, currentSort);
-    applyFilters();
-  });
+  // const sortMenu = sortDrop.querySelector(".menu");
+  // buildMenu(sortMenu, SORT_OPTIONS, currentSort);
+  // wireDropdown(sortDrop, (val)=>{
+  //   currentSort = val;
+  //   setText(sortValue, val);
+  //   buildMenu(sortMenu, SORT_OPTIONS, currentSort);
+  //   applyFilters();
+  // });
 }
 
 function wireSearch(){
