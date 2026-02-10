@@ -3,7 +3,7 @@
 export const ADMIN_PASSWORD = "601/18";
 
 // ===== GitHub API (очень простой вариант: токен в коде) =====
-// ВАЖНО: Этот токен будет виден всем, кто откроет сайт. Вы просили так.
+// ВАЖНО: Этот токен будет виден всем, кто откроет сайт.
 export const GITHUB_TOKEN = "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";      // <-- вставь токен
 export const GITHUB_OWNER = "mantrova-studio";       // <-- твой username
 export const GITHUB_REPO  = "sd-tsc";                // <-- имя репозитория
