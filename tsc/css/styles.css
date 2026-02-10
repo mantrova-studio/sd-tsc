@@ -90,11 +90,11 @@ a{ color:inherit; text-decoration:none; }
   flex-wrap:wrap;
 }
 
-/* ✅ FIX: dropdown stacking */
 .dropdown{
   position:relative;
   width:min(260px, 44vw);
 }
+
 .dropdown.open{
   z-index: 9999;
 }
@@ -127,8 +127,6 @@ a{ color:inherit; text-decoration:none; }
   box-shadow: var(--shadow);
   overflow:hidden;
   display:none;
-
-  /* ✅ FIX: menu on top */
   z-index: 10000;
 }
 .menu.open{ display:block; }
