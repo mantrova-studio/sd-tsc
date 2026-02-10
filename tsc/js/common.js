@@ -224,17 +224,17 @@ export async function githubSaveDishes(dishes){
 }
 
 // ===== Sort options =====
-export const SORT_OPTIONS = [
-  "Название A→Z",
-  "Название Z→A"
-];
+// export const SORT_OPTIONS = [
+//   "Название A→Z",
+//   "Название Z→A"
+// ];
 
-export function sortDishes(list, sortLabel){
-  const arr = list.slice();
-  if(sortLabel === "Название Z→A"){
-    arr.sort((a,b)=>b.name.localeCompare(a.name, "ru"));
-  }else{
-    arr.sort((a,b)=>a.name.localeCompare(b.name, "ru"));
-  }
-  return arr;
-}
+// export function sortDishes(list, sortLabel){
+//   const arr = list.slice();
+//   if(sortLabel === "Название Z→A"){
+//     arr.sort((a,b)=>b.name.localeCompare(a.name, "ru"));
+//   }else{
+//     arr.sort((a,b)=>a.name.localeCompare(b.name, "ru"));
+//   }
+//   return arr;
+// }
