@@ -172,9 +172,28 @@ function wireFavOnly(){
   sync();
 }
 
+// function wireAdminButton(){
+//   lockBtn.addEventListener("click", ()=>{
+//     location.href = "admin.html";
+//   });
+// }
+import { ADMIN_PASSWORD, setAdminSession, isAdmin } from "./common.js";
+
 function wireAdminButton(){
   lockBtn.addEventListener("click", ()=>{
-    location.href = "admin.html";
+    if(isAdmin()){
+      location.href = "admin.html";
+      return;
+    }
+    const input = prompt("Введите пароль администратора:");
+    if(input === null) return;
+
+    if(input === ADMIN_PASSWORD){
+      setAdminSession(true);
+      location.href = "admin.html";
+    }else{
+      alert("Неверный пароль.");
+    }
   });
 }
 
