@@ -3,10 +3,10 @@
 export const ADMIN_PASSWORD = "601/18";
 
 // ===== GitHub API (очень простой вариант: токен в коде) =====
-// ВАЖНО: Этот токен будет виден всем, кто откроет сайт. Вы просили так.
-export const GITHUB_TOKEN = "PASTE_YOUR_TOKEN_HERE";      // <-- вставь токен
-export const GITHUB_OWNER = "YOUR_GITHUB_USERNAME";       // <-- твой username
-export const GITHUB_REPO  = "tcards-site";                // <-- имя репозитория
+// ВАЖНО: Этот токен будет виден всем, кто откроет сайт.
+export const GITHUB_TOKEN = "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";      // <-- вставь токен
+export const GITHUB_OWNER = "mantrova-studio";       // <-- твой username
+export const GITHUB_REPO  = "sd-tsc";                // <-- имя репозитория
 export const GITHUB_PATH  = "data/dishes.json";           // <-- путь файла в репо
 
 export const PLACEHOLDER_PHOTO = "assets/photos/placeholder.jpg";
@@ -60,7 +60,7 @@ export function normalizeDishes(list){
       delivery: (d.delivery || "").trim(),
       category: (d.category || "").trim(),
       name: (d.name || "").trim(),
-      photo: (d.photo  PLACEHOLDER_PHOTO).trim()  PLACEHOLDER_PHOTO,
+      photo: (d.photo || PLACEHOLDER_PHOTO).trim() || PLACEHOLDER_PHOTO,
       description: (d.description || "").toString()
     });
   }
@@ -118,13 +118,13 @@ export async function loadDishes(){
 }
 
 // ===== Icons (пути-заглушки, иконки ты можешь заменить своими) =====
-export function deliveryIconPath(_deliveryName){
+export function deliveryIconPath(deliveryName){
   return "assets/icons/delivery/default.png";
 }
 
 // ===== Dropdown helpers =====
 export function buildMenu(menuEl, items, activeValue){
-menuEl.innerHTML = "";
+  menuEl.innerHTML = "";
   for(const item of items){
     const b = document.createElement("button");
     b.type = "button";
@@ -135,10 +135,27 @@ menuEl.innerHTML = "";
   }
 }
 
-/**
- * ✅ FIX: поднимаем активный dropdown наверх и закрываем корректно
- * чтобы меню не перекрывалось карточками/кнопками.
- */
+// export function wireDropdown(dropRoot, onPick){
+//   const btn = qs(".dropBtn", dropRoot);
+//   const menu = qs(".menu", dropRoot);
+
+//   btn.addEventListener("click", (e)=>{
+//     e.stopPropagation();
+//     const isOpen = menu.classList.contains("open");
+//     document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
+//     if(!isOpen) menu.classList.add("open");
+//   });
+
+//   menu.addEventListener("click", (e)=>{
+//     const b = e.target.closest("button[data-value]");
+//     if(!b) return;
+//     const value = b.getAttribute("data-value");
+//     onPick?.(value);
+//     menu.classList.remove("open");
+//   });
+
+//   document.addEventListener("click", ()=> menu.classList.remove("open"));
+// }
 export function wireDropdown(dropRoot, onPick){
   const btn = qs(".dropBtn", dropRoot);
   const menu = qs(".menu", dropRoot);
@@ -201,11 +218,11 @@ export async function githubSaveDishes(dishes){
     throw new Error("GITHUB_OWNER не задан в js/common.js");
   }
 
-  const api = https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH};
+  const api = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}`;
 
   // get current sha (file may exist)
   const currentRes = await fetch(api, {
-    headers: { "Authorization": token ${GITHUB_TOKEN} }
+    headers: { "Authorization": `token ${GITHUB_TOKEN}` }
   });
 
   let sha = undefined;
@@ -229,7 +246,7 @@ export async function githubSaveDishes(dishes){
   const putRes = await fetch(api, {
     method: "PUT",
     headers: {
-      "Authorization": token ${GITHUB_TOKEN},
+      "Authorization": `token ${GITHUB_TOKEN}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify(body)
@@ -243,17 +260,17 @@ export async function githubSaveDishes(dishes){
 }
 
 // ===== Sort options =====
-export const SORT_OPTIONS = [
-  "Название A→Z",
-  "Название Z→A"
-];
+// export const SORT_OPTIONS = [
+//   "Название A→Z",
+//   "Название Z→A"
+// ];
 
-export function sortDishes(list, sortLabel){
-  const arr = list.slice();
-  if(sortLabel === "Название Z→A"){
-    arr.sort((a,b)=>b.name.localeCompare(a.name, "ru"));
-  }else{
-    arr.sort((a,b)=>a.name.localeCompare(b.name, "ru"));
-  }
-  return arr;
-}
+// export function sortDishes(list, sortLabel){
+//   const arr = list.slice();
+//   if(sortLabel === "Название Z→A"){
+//     arr.sort((a,b)=>b.name.localeCompare(a.name, "ru"));
+//   }else{
+//     arr.sort((a,b)=>a.name.localeCompare(b.name, "ru"));
+//   }
+//   return arr;
+// }
