@@ -1,6 +1,6 @@
 import {
   loadDishes, uniqSorted, qs, setText,
-  DELIVERY_LIST, SORT_OPTIONS, sortDishes,
+  DELIVERY_LIST, //SORT_OPTIONS, sortDishes,
   wireDropdown, buildMenu,
   deliveryIconPath,
   getFavorites, toggleFavorite
