@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Админка — Технологические карты</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="container">
+      <div class="backRow">
+        <button class="backBtn" id="backToSite" type="button">
+          <img src="assets/icons/back.svg" alt="back" />
+          <span>Назад</span>
+        </button>
+      </div>
+      <div class="headerRow" style="padding-top:0;">
+        <h1 class="siteTitle">СЫТНАЯ ДОСТАВКА<br/>Технологические карты</h1>
+      </div>
+
+      <div class="controls">
+        <div class="dropdown" id="deliveryDrop">
+          <button class="dropBtn" type="button">
+            <span class="label">Доставка:</span>
+            <span class="value" id="deliveryValue">Все</span>
+            <span class="chev">▼</span>
+          </button>
+          <div class="menu"></div>
+        </div>
+
+        <div class="dropdown" id="categoryDrop">
+          <button class="dropBtn" type="button">
+            <span class="label">Категория:</span>
+            <span class="value" id="categoryValue">Все</span>
+            <span class="chev">▼</span>
+          </button>
+          <div class="menu"></div>
+        </div>
+
+        <div class="dropdown" id="sortDrop">
+          <button class="dropBtn" type="button">
+            <span class="label">Сортировка:</span>
+            <span class="value" id="sortValue">Название A→Z</span>
+            <span class="chev">▼</span>
+          </button>
+          <div class="menu"></div>
+        </div>
+      </div>
+
+      <div class="searchRow">
+        <input id="searchInput" class="searchInput" type="search" placeholder="Поиск по названию..." />
+        <button id="clearSearch" class="searchClear" type="button" title="Очистить">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="adminTop">
+      <h2 class="adminTitle">Админка</h2>
+
+      <div class="adminActions">
+        <button class="smallBtn primary" id="addBtn" type="button">
+          <img src="assets/icons/plus.svg" alt="+" />
+          Добавить блюдо
+        </button>
+
+        <button class="smallBtn" id="saveGithubBtn" type="button">Сохранить в GitHub</button>
+        <button class="smallBtn" id="exportBtn" type="button">Экспорт JSON</button>
+        <button class="smallBtn danger" id="resetBtn" type="button">Сбросить локальные</button>
+        <button class="smallBtn" id="logoutBtn" type="button">Выйти</button>
+      </div>
+    </div>
+
+    <div class="adminList" id="list"></div>
+    <div class="empty" id="empty" style="display:none;">Список пуст.</div>
+  </main>
+
+  <div class="modalWrap" id="modalWrap" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modalHead">
+        <h3 id="modalTitle">Добавить блюдо</h3>
+        <button class="iconBtn" id="closeModal" type="button" title="Закрыть">✕</button>
+      </div>
+      <div class="modalBody">
+        <form id="form">
+          <div class="formGrid">
+            <div class="field">
+              <label>ID (уникальный)</label>
+              <input id="f_id" placeholder="например: sushi-007" required />
+            </div>
+
+            <div class="field">
+              <label>Доставка</label>
+              <select id="f_delivery" required></select>
+            </div>
+
+            <div class="field">
+              <label>Категория</label>
+              <input id="f_category" placeholder="например: Роллы" required />
+            </div>
+
+            <div class="field">
+              <label>Название блюда</label>
+              <input id="f_name" placeholder="например: Филадельфия" required />
+            </div>
+
+            <div class="field" style="grid-column:1/-1;">
+              <label>Описание / технологическая карта</label>
+              <textarea id="f_desc" placeholder="Текст..." required></textarea>
+            </div>
+
+            <div class="field" style="grid-column:1/-1;">
+              <label>Фото</label>
+              <input value="Используется заглушка (assets/photos/placeholder.jpg)" disabled />
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modalFoot">
+        <button class="smallBtn" id="cancelBtn" type="button">Отмена</button>
+        <button class="smallBtn primary" id="saveBtn" type="button">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>
