@@ -14,7 +14,7 @@ let filtered = [];
 
 let currentDelivery = "Все";
 let currentCategory = "Все";
-//let currentSort = "Название A→Z";
+let currentSort = "Название A→Z";
 let query = "";
 
 let editMode = "add"; // add | edit
