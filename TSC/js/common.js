@@ -4,9 +4,9 @@ export const ADMIN_PASSWORD = "601/18";
 
 // ===== GitHub API (очень простой вариант: токен в коде) =====
 // ВАЖНО: Этот токен будет виден всем, кто откроет сайт. Вы просили так.
-export const GITHUB_TOKEN = "PASTE_YOUR_TOKEN_HERE";      // <-- вставь токен
-export const GITHUB_OWNER = "YOUR_GITHUB_USERNAME";       // <-- твой username
-export const GITHUB_REPO  = "tcards-site";                // <-- имя репозитория
+export const GITHUB_TOKEN = "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";      // <-- вставь токен
+export const GITHUB_OWNER = "mantrova-studio";       // <-- твой username
+export const GITHUB_REPO  = "sd-tsc";                // <-- имя репозитория
 
 // ВАЖНО: сайт лежит в папке /TSC в репозитории:
 export const GITHUB_PATH  = "TSC/data/dishes.json";       // <-- путь файла dishes.json в репо
