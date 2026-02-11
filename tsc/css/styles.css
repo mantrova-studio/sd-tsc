@@ -495,3 +495,23 @@ a{ color:inherit; text-decoration:none; }
 #sortDrop {
   display: none !important;
 }
+
+/* FIX: dropdown всегда поверх поиска и карточек */
+.topbar{
+  position: sticky; /* если уже есть — оставь */
+  top: 0;
+  z-index: 1000;
+}
+
+.dropdown{
+  position: relative;
+}
+
+.dropdown.open{
+  z-index: 9999; /* поднимаем активный dropdown */
+}
+
+.dropdown .menu{
+  position: absolute;
+  z-index: 10000; /* меню выше всего */
+}
