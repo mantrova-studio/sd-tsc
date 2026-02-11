@@ -483,3 +483,7 @@ a{ color:inherit; text-decoration:none; }
   .desc{ background:#fff !important; border:1px solid #ddd !important; color:#000 !important; }
   img{ filter:none !important; }
 }
+
+.printBtn{
+  display: none !important;
+}
