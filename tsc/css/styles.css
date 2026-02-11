@@ -172,7 +172,7 @@ a{ color:inherit; text-decoration:none; }
   gap:16px;
   margin-top:18px;
 }
-@media (max-width: 760px){ .grid{ grid-template-columns: 1fr; } }
+/*@media (max-width: 760px){ .grid{ grid-template-columns: 1fr; } }*/
 
 .card{
   background: linear-gradient(180deg, rgba(21,25,36,.9), rgba(18,22,33,.9));
