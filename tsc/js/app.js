@@ -76,7 +76,6 @@ function renderGrid(list){
 
       <div class="cardBody">
         <div class="meta">
-          <img class="iconTiny" src="${deliveryIconPath(d.delivery)}" alt="" />
           <span>${escapeText(d.delivery)}</span>
           <span class="dot"></span>
           <span>${escapeText(d.category)}</span>
