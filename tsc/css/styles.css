@@ -491,3 +491,7 @@ a{ color:inherit; text-decoration:none; }
 .printBtn{
   display: none !important;
 }
+
+#sortDrop {
+  display: none !important;
+}
