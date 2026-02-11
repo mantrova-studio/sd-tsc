@@ -75,7 +75,6 @@ async function init(){
     photo.alt = d.name;
 
     meta.innerHTML = `
-      // <img class="iconTiny" src="${deliveryIconPath(d.delivery)}" alt="" />
       <span>${d.delivery}</span>
       <span class="dot"></span>
       <span>${d.category}</span>
