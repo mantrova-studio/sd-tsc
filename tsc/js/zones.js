@@ -1,3 +1,22 @@
+(function(){
+  function addDbg(msg){
+    const el = document.createElement("div");
+    el.style.cssText =
+      "position:fixed;left:12px;right:12px;bottom:58px;z-index:99999;" +
+      "padding:10px 12px;border-radius:14px;background:rgba(21,25,36,.95);" +
+      "border:1px solid rgba(42,50,70,.95);color:#e9edf5;font-weight:900;" +
+      "font-family:system-ui";
+    el.textContent = msg;
+    document.documentElement.appendChild(el); // НЕ body
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => addDbg("DBG2: zones.js EXECUTED"));
+  } else {
+    addDbg("DBG2: zones.js EXECUTED");
+  }
+})();
+
 document.body.insertAdjacentHTML(
   "beforeend",
   "<div style='position:fixed;left:12px;right:12px;bottom:58px;z-index:99999;padding:10px 12px;border-radius:14px;background:rgba(21,25,36,.95);border:1px solid rgba(42,50,70,.95);color:#e9edf5;font-weight:900;font-family:system-ui'>DBG2: zones.js EXECUTED</div>"
@@ -257,4 +276,5 @@ document.addEventListener("click", (e)=>{
 // старт
 
 loadZones();
+
 
