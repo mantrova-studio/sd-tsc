@@ -126,6 +126,27 @@
   animation: shake .28s ease;
 }
 
+.footer{
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+
+  color: rgba(233,237,245,.55);
+  letter-spacing: .5px;
+
+  user-select: none;
+}
+
+.footer div:last-child{
+  font-weight: 900;
+  color: rgba(233,237,245,.75);
+}
+
   </style>
 </head>
 
@@ -168,6 +189,11 @@
     });
   });
 </script>
+
+<footer class="footer">
+  <div>Разработано</div>
+  <div>© POLIHOV DEV STUDIO</div>
+</footer>
 
 </body>
 </html>
