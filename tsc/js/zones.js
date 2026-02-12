@@ -168,3 +168,70 @@
   }
 
   function renderSuggest(list) {
+    suggest.innerHTML = "";
+    if (!list.length) {
+      suggest.style.display = "none";
+      return;
+    }
+
+    for (const item of list) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "addrItem";
+      btn.textContent = item.display_name;
+
+      btn.addEventListener("click", () => {
+        suggest.style.display = "none";
+        addrInput.value = item.display_name;
+        clearAddr.style.display = "block";
+
+        const lat = Number(item.lat);
+        const lon = Number(item.lon);
+
+        setMarker(lat, lon);
+
+        const z = findZoneForPoint(lat, lon);
+        if (z) {
+          zonesLayer.eachLayer((layer) => {
+            if (layer.feature === z) highlightLayer(layer);
+          });
+          showZone(z.properties || {});
+        } else {
+          showInfo(`<div><b>Адрес вне зон доставки</b></div><div class="muted">Проверь адрес или добавь зону.</div>`);
+        }
+      });
+
+      suggest.appendChild(btn);
+    }
+
+    suggest.style.display = "block";
+  }
+
+  addrInput.addEventListener("input", () => {
+    const q = addrInput.value.trim();
+    clearAddr.style.display = q ? "block" : "none";
+
+    if (tmr) clearTimeout(tmr);
+
+    if (q.length < 3) {
+      suggest.style.display = "none";
+      return;
+    }
+
+    tmr = setTimeout(async () => {
+      try {
+        const list = await fetchSuggest(q);
+        renderSuggest(list);
+      } catch (e) {}
+    }, 350);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!suggest.contains(e.target) && e.target !== addrInput) {
+      suggest.style.display = "none";
+    }
+  });
+
+  // старт
+  loadZones();
+})();
