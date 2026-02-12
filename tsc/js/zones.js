@@ -277,4 +277,7 @@ document.addEventListener("click", (e)=>{
 
 loadZones();
 
+setTimeout(() => {
+  map.invalidateSize(true);
+}, 500);
 
