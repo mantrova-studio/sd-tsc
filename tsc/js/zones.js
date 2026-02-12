@@ -1,3 +1,9 @@
+const DBG = (msg) => {
+  const el = document.getElementById("dbg");
+  if (el) el.textContent = "DBG: " + msg;
+};
+DBG("zones.js запустился");
+
 const mode = new URLSearchParams(location.search).get("mode") || "day";
 
 // пока только день
@@ -51,32 +57,82 @@ function highlightLayer(layer){
   layer.setStyle({ weight: 3, fillOpacity: 0.35 });
 }
 
+
 async function loadZones(){
-  const res = await fetch(GEOJSON_URL, { cache: "no-store" });
-  zonesGeo = await res.json();
+  try{
+    DBG("загружаю GeoJSON…");
+
+    const res = await fetch(GEOJSON_URL, { cache: "no-store" });
+    DBG("GeoJSON ответ: " + res.status);
+
+    if(!res.ok){
+      showInfo(`<div><b>Не удалось загрузить зоны</b></div><div class="muted">${GEOJSON_URL} — HTTP ${res.status}</div>`);
+      return;
+    }
+
+    zonesGeo = await res.json();
+    DBG("GeoJSON загружен, features=" + ((zonesGeo.features||[]).length));
+
+    const onlyPolys = {
+      type: "FeatureCollection",
+      features: (zonesGeo.features || []).filter(f =>
+        f?.geometry?.type === "Polygon" || f?.geometry?.type === "MultiPolygon"
+      )
+    };
+    DBG("полигоны=" + onlyPolys.features.length);
+
+    if(zonesLayer) zonesLayer.remove();
+
+    zonesLayer = L.geoJSON(onlyPolys, {
+      style: zoneStyle,
+      onEachFeature: (feature, layer)=>{
+        layer.on("click", ()=>{
+          highlightLayer(layer);
+          showZone(feature.properties || {});
+        });
+      }
+    }).addTo(map);
+
+    if(onlyPolys.features.length){
+      map.fitBounds(zonesLayer.getBounds(), { padding: [20, 20] });
+      DBG("карта отрисована");
+    }else{
+      showInfo(`<div><b>В GeoJSON нет полигонов</b></div><div class="muted">Проверь, что экспортировал именно зоны, а не точки.</div>`);
+      DBG("нет полигонов");
+    }
+
+  }catch(e){
+    DBG("ошибка: " + (e?.message || e));
+    showInfo(`<div><b>Ошибка карты</b></div><div class="muted">${String(e?.message || e)}</div>`);
+  }
+}
+
+//async function loadZones(){
+//  const res = await fetch(GEOJSON_URL, { cache: "no-store" });
+//  zonesGeo = await res.json();
 
   // рисуем ТОЛЬКО полигоны (точки отдельно)
-  const onlyPolys = {
-    type: "FeatureCollection",
-    features: (zonesGeo.features || []).filter(f =>
-      f?.geometry?.type === "Polygon" || f?.geometry?.type === "MultiPolygon"
-    )
-  };
+//  const onlyPolys = {
+//    type: "FeatureCollection",
+  //  features: (zonesGeo.features || []).filter(f =>
+  //    f?.geometry?.type === "Polygon" || f?.geometry?.type === "MultiPolygon"
+ //   )
+//  };
 
-  if(zonesLayer) zonesLayer.remove();
+//  if(zonesLayer) zonesLayer.remove();
 
-  zonesLayer = L.geoJSON(onlyPolys, {
-    style: zoneStyle,
-    onEachFeature: (feature, layer)=>{
-      layer.on("click", ()=>{
-        highlightLayer(layer);
-        showZone(feature.properties || {});
-      });
-    }
-  }).addTo(map);
+//  zonesLayer = L.geoJSON(onlyPolys, {
+  //  style: zoneStyle,
+ //   onEachFeature: (feature, layer)=>{
+  //    layer.on("click", ()=>{
+  //      highlightLayer(layer);
+    //    showZone(feature.properties || {});
+ //     });
+  //  }
+//  }).addTo(map);
 
-  map.fitBounds(zonesLayer.getBounds(), { padding: [20, 20] });
-}
+//  map.fitBounds(zonesLayer.getBounds(), { padding: [20, 20] });
+//}
 
 function showZone(p){
   const zone = p.zone  p.Name  "Зона";
@@ -193,4 +249,5 @@ document.addEventListener("click", (e)=>{
 });
 
 // старт
+
 loadZones();
