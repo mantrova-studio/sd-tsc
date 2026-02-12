@@ -64,10 +64,15 @@
   })();
   </script>
   
-  <script src="js/zones.js"></script>
+  <script
+  src="js/zones.js"
+  onload="document.getElementById('dbg').textContent='DBG: zones.js LOADED'"
+  onerror="document.getElementById('dbg').textContent='DBG: zones.js 404/ERROR (путь или регистр)'"
+></script>
 </body>
 
 </html>
+
 
 
 
