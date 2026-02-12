@@ -520,3 +520,52 @@ a{ color:inherit; text-decoration:none; }
   position: absolute;
   z-index: 10000; /* меню выше всего */
 }
+
+/* ===== Zones page ===== */
+.zoneMap{
+  width: 100%;
+  height: min(70vh, 680px);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(42,50,70,.75);
+  background: rgba(21,25,36,.45);
+}
+
+.addrSuggest{
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  background: rgba(21,25,36,.98);
+  border: 1px solid rgba(42,50,70,.95);
+  border-radius: 16px;
+  padding: 6px;
+  z-index: 9999;
+  box-shadow: 0 14px 40px rgba(0,0,0,.45);
+}
+
+.addrItem{
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-weight: 900;
+  padding: 10px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.addrItem:hover{ background: rgba(78,115,255,.12); }
+
+.zoneInfo{
+  margin: 10px auto 0;
+  width: min(520px, 92vw);
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(21,25,36,.85);
+  border: 1px solid rgba(42,50,70,.85);
+  box-shadow: 0 10px 25px rgba(0,0,0,.25);
+  font-weight: 900;
+  line-height: 1.3;
+}
+.zoneInfo .muted{ color: rgba(233,237,245,.65); font-weight: 800; }
