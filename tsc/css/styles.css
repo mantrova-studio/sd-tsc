@@ -524,7 +524,8 @@ a{ color:inherit; text-decoration:none; }
 /* ===== Zones page ===== */
 .zoneMap{
   width: 100%;
-  height: min(70vh, 680px);
+  height: 70vh;
+  max-height: 680px;
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid rgba(42,50,70,.75);
