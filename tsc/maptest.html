@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Map test</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+  <style>
+    html, body { height:100%; margin:0; background:#0b1020; }
+    #map { height: 80vh; margin: 12px; border-radius: 16px; overflow: hidden; border:1px solid rgba(255,255,255,.15); }
+    #dbg { position: fixed; left: 12px; right: 12px; bottom: 12px; padding: 10px 12px; border-radius: 14px;
+           background: rgba(0,0,0,.65); color: #fff; font: 700 14px/1.2 system-ui; z-index: 99999; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="dbg">DBG: loading…</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script>
+    const dbg = (t)=>document.getElementById("dbg").textContent = t;
+
+    try{
+      const map = L.map("map");
+      map.setView([51.7682, 55.0968], 12); // Оренбург
+
+      const layer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19
+      });
+
+      layer.on("loading", ()=>dbg("DBG: tiles loading…"));
+      layer.on("load", ()=>dbg("DBG: tiles loaded ✅"));
+      layer.on("tileerror", ()=>dbg("DBG: tile error ❌ (тайлы не грузятся)"));
+
+      layer.addTo(map);
+
+      // страховка для мобилок: переинициализация размеров
+      setTimeout(()=>{ map.invalidateSize(true); dbg("DBG: invalidateSize ✅"); }, 600);
+
+    }catch(e){
+      dbg("DBG: error: " + (e.message || e));
+    }
+  </script>
+</body>
+</html>
