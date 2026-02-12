@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Зоны доставки</title>
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="container">
+      <div class="backRow">
+        <button class="backBtn" id="backBtn" type="button">
+          <img src="assets/icons/back.svg" alt="back" />
+          <span>Назад</span>
+        </button>
+      </div>
+
+      <div class="headerRow" style="padding-top:0;">
+        <h1 class="siteTitle">Зоны доставки</h1>
+      </div>
+
+      <div class="controls" style="padding-top:0;">
+        <div class="searchWrap" style="max-width:520px;">
+          <input id="addrInput" placeholder="Оренбург: введите адрес..." autocomplete="off" />
+          <button class="iconBtn" id="clearAddr" title="Очистить">✕</button>
+          <div class="addrSuggest" id="addrSuggest" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="zoneInfo" id="zoneInfo" style="display:none;"></div>
+    </div>
+  </div>
+
+  <main class="container" style="padding-top:14px;">
+    <div id="map" class="zoneMap"></div>
+  </main>
+
+  <!-- Leaflet + Turf -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+  <script type="module" src="js/zones.js"></script>
+</body>
+</html>
