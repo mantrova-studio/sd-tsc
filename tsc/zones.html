@@ -4,11 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Зоны доставки</title>
+
+  <!-- твои стили TSC -->
   <link rel="stylesheet" href="css/styles.css" />
 
-  <!-- Leaflet -->
+  <!-- Leaflet (CDN) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 </head>
+
 <body>
   <div class="topbar">
     <div class="container">
@@ -35,252 +38,42 @@
     </div>
   </div>
 
+  <!-- Блок карты (важно: height задан прямо тут, чтобы точно была высота) -->
   <div style="padding:14px;">
-    <div id="map" class="zoneMap"></div>
+    <div id="map" class="zoneMap" style="height:70vh;max-height:680px;"></div>
+  </div>
+
+  <!-- DBG плашка (временная) -->
+  <div id="dbg" style="
+    position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;
+    padding:10px 12px;border-radius:14px;background:rgba(21,25,36,.95);
+    border:1px solid rgba(42,50,70,.95);color:#e9edf5;font-weight:900;font-family:system-ui;">
+    DBG: …
+  </div>
+
+  <div id="dbg2" style="
+    position:fixed;left:12px;right:12px;bottom:58px;z-index:99999;
+    padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.45);
+    border:1px solid rgba(42,50,70,.95);color:#fff;font:800 14px/1.2 system-ui;">
+    DBG2: …
   </div>
 
   <!-- Leaflet + Turf -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
+  <!-- Диагностика: Leaflet/Turf загрузились -->
   <script>
-  // Плашка-диагностика
-  (function(){
-    const box = document.createElement("div");
-    box.style.cssText = "position:fixed;bottom:12px;left:12px;right:12px;z-index:99999;padding:10px 12px;border-radius:14px;background:rgba(21,25,36,.95);border:1px solid rgba(42,50,70,.95);color:#e9edf5;font-weight:900;font-family:system-ui";
-    box.id = "dbg";
-    box.textContent = "DBG: страница загрузилась…";
-    document.body.appendChild(box);
-
-    window.addEventListener("error", (e)=>{
-      box.textContent = "DBG: JS ошибка: " + (e.message || e.error || "unknown");
-    });
-
-    window.addEventListener("load", ()=>{
+    window.addEventListener("load", () => {
       const hasL = typeof window.L !== "undefined";
       const hasT = typeof window.turf !== "undefined";
-      box.textContent = "DBG: Leaflet=" + (hasL?"OK":"NO") + ", Turf=" + (hasT?"OK":"NO");
+      document.getElementById("dbg").textContent =
+        "DBG: Leaflet=" + (hasL ? "OK" : "NO") + ", Turf=" + (hasT ? "OK" : "NO");
     });
-  })();
   </script>
-  
-  <script>
-  // TEST INLINE: если появится эта надпись — значит zones.html обновился и JS выполняется
-  <script>
-(function(){
-  // --- helpers ---
-  function showInfo(html){
-    const zoneInfo = document.getElementById("zoneInfo");
-    zoneInfo.innerHTML = html;
-    zoneInfo.style.display = "block";
-  }
 
-  // --- elements ---
-  const backBtn = document.getElementById("backBtn");
-  const addrInput = document.getElementById("addrInput");
-  const clearAddr = document.getElementById("clearAddr");
-  const suggest = document.getElementById("addrSuggest");
-
-  backBtn.addEventListener("click", ()=>history.length > 1 ? history.back() : (location.href="index.html"));
-
-  clearAddr.style.display = "none";
-  clearAddr.addEventListener("click", ()=>{
-    addrInput.value = "";
-    clearAddr.style.display = "none";
-    suggest.style.display = "none";
-    document.getElementById("zoneInfo").style.display = "none";
-  });
-
-  // --- config ---
-  const GEOJSON_URL = "/tsc/data/zones/zones_day.geojson";
-  const CITY_HINT = "Оренбург, Россия";
-  const NOMINATIM_COUNTRY = "ru";
-
-  // --- map ---
-  const map = L.map("map", { zoomControl: true });
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: "&copy; OpenStreetMap"
-  }).addTo(map);
-
-  let zonesGeo = null;
-  let zonesLayer = null;
-  let marker = null;
-
-  function zoneStyle(){
-    return { weight: 2, opacity: 1, fillOpacity: 0.25 };
-  }
-  function highlightLayer(layer){
-    if(!zonesLayer) return;
-    zonesLayer.eachLayer(l=>zonesLayer.resetStyle(l));
-    layer.setStyle({ weight: 3, fillOpacity: 0.35 });
-  }
-
-  function showZone(p){
-    const zone = p.zone || p.Name || p.name || "Зона";
-    const price = (p.delivery_price != null) ? p.delivery_price : "—";
-    const min = (p.min_order != null) ? p.min_order : "—";
-
-    showInfo(`
-      <div><b>${zone}</b> <span class="muted">(День)</span></div>
-      <div>Стоимость доставки: <b>${price}</b> ₽</div>
-      <div>Минимальная сумма заказа: <b>${min}</b> ₽</div>
-    `);
-  }
-
-  function findZoneForPoint(lat, lon){
-    if(!zonesGeo) return null;
-    const pt = turf.point([lon, lat]);
-    for(const f of (zonesGeo.features || [])){
-      const t = f?.geometry?.type;
-      if(t !== "Polygon" && t !== "MultiPolygon") continue;
-      try{
-        if(turf.booleanPointInPolygon(pt, f)) return f;
-      }catch(e){}
-    }
-    return null;
-  }
-
-  function setMarker(lat, lon){
-    if(marker) marker.remove();
-    marker = L.marker([lat, lon]).addTo(map);
-    map.setView([lat, lon], Math.max(map.getZoom(), 14));
-  }
-
-  async function loadZones(){
-    const res = await fetch(GEOJSON_URL, { cache: "no-store" });
-    if(!res.ok){
-      showInfo(`<div><b>Не удалось загрузить зоны</b></div><div class="muted">${GEOJSON_URL} — HTTP ${res.status}</div>`);
-      return;
-    }
-    zonesGeo = await res.json();
-
-    const onlyPolys = {
-      type: "FeatureCollection",
-      features: (zonesGeo.features || []).filter(f =>
-        f?.geometry?.type === "Polygon" || f?.geometry?.type === "MultiPolygon"
-      )
-    };
-
-    if(zonesLayer) zonesLayer.remove();
-
-    zonesLayer = L.geoJSON(onlyPolys, {
-      style: zoneStyle,
-      onEachFeature: (feature, layer)=>{
-        layer.on("click", ()=>{
-          highlightLayer(layer);
-          showZone(feature.properties || {});
-        });
-      }
-    }).addTo(map);
-
-    if(onlyPolys.features.length){
-      map.fitBounds(zonesLayer.getBounds(), { padding: [20, 20] });
-    }else{
-      showInfo(`<div><b>В GeoJSON нет полигонов</b></div><div class="muted">Проверь экспорт зон.</div>`);
-    }
-  }
-
-  // --- address suggest (Nominatim) ---
-  let tmr = null;
-
-  async function fetchSuggest(q){
-    const url = new URL("https://nominatim.openstreetmap.org/search");
-    url.searchParams.set("format", "json");
-    url.searchParams.set("addressdetails", "1");
-    url.searchParams.set("limit", "7");
-    url.searchParams.set("countrycodes", NOMINATIM_COUNTRY);
-    url.searchParams.set("q", `${q}, ${CITY_HINT}`);
-
-    const res = await fetch(url.toString(), { headers: { "Accept": "application/json" } });
-    return await res.json();
-  }
-
-  function renderSuggest(list){
-    suggest.innerHTML = "";
-    if(!list.length){
-      suggest.style.display = "none";
-      return;
-    }
-    for(const item of list){
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "addrItem";
-      btn.textContent = item.display_name;
-
-      btn.addEventListener("click", ()=>{
-        suggest.style.display = "none";
-        addrInput.value = item.display_name;
-        clearAddr.style.display = "block";
-
-        const lat = Number(item.lat);
-        const lon = Number(item.lon);
-
-        setMarker(lat, lon);
-
-        const zoneFeature = findZoneForPoint(lat, lon);
-        if(zoneFeature){
-          zonesLayer.eachLayer(layer=>{
-            if(layer.feature === zoneFeature) highlightLayer(layer);
-          });
-          showZone(zoneFeature.properties || {});
-        }else{
-          showInfo(`<div><b>Адрес вне зон доставки</b></div><div class="muted">Проверь адрес или добавь зону.</div>`);
-        }
-      });
-
-      suggest.appendChild(btn);
-    }
-    suggest.style.display = "block";
-  }
-
-  addrInput.addEventListener("input", ()=>{
-    const q = addrInput.value.trim();
-    clearAddr.style.display = q ? "block" : "none";
-
-    if(tmr) clearTimeout(tmr);
-    if(q.length < 3){
-      suggest.style.display = "none";
-      return;
-    }
-    tmr = setTimeout(async ()=>{
-      try{
-        const list = await fetchSuggest(q);
-        renderSuggest(list);
-      }catch(e){}
-    }, 350);
-  });
-
-  document.addEventListener("click", (e)=>{
-    if(!suggest.contains(e.target) && e.target !== addrInput){
-      suggest.style.display = "none";
-    }
-  });
-
-  // старт
-  loadZones();
-})();
-</script>
-  </script>
-  <div id="dbg2" style="
-  position:fixed;left:12px;right:12px;bottom:110px;z-index:99999;
-  padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.55);
-  color:#fff;font:800 14px/1.2 system-ui;">
-  DBG2: …
-  </div>
+  <!-- ВАЖНО: абсолютный путь, чтобы точно работало на домене -->
+  <script src="/tsc/js/zones.js?v=5"></script>
 </body>
-
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
+```0
