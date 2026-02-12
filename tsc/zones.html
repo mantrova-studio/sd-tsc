@@ -42,32 +42,11 @@
   <!-- Leaflet + Turf -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-
-  <script>
-  // Плашка-диагностика
-  (function(){
-    const box = document.createElement("div");
-    box.style.cssText = "position:fixed;bottom:12px;left:12px;right:12px;z-index:99999;padding:10px 12px;border-radius:14px;background:rgba(21,25,36,.95);border:1px solid rgba(42,50,70,.95);color:#e9edf5;font-weight:900;font-family:system-ui";
-    box.id = "dbg";
-    box.textContent = "DBG: страница загрузилась…";
-    document.body.appendChild(box);
-
-    window.addEventListener("error", (e)=>{
-      box.textContent = "DBG: JS ошибка: " + (e.message || e.error || "unknown");
-    });
-
-    window.addEventListener("load", ()=>{
-      const hasL = typeof window.L !== "undefined";
-      const hasT = typeof window.turf !== "undefined";
-      box.textContent = "DBG: Leaflet=" + (hasL?"OK":"NO") + ", Turf=" + (hasT?"OK":"NO");
-    });
-  })();
-  </script>
-  
   <script src="js/zones.js"></script>
 </body>
 
 </html>
+
 
 
 
