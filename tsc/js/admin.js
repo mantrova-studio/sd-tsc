@@ -1,3 +1,6 @@
+const f_photo = qs("#f_photo");
+const deleteSelectedBtn = qs("#deleteSelectedBtn");
+
 import {
   loadDishes, normalizeDishes, uniqSorted, qs, setText,
   DELIVERY_LIST, SORT_OPTIONS, sortDishes,
@@ -98,6 +101,7 @@ function renderList(){
 
     row.innerHTML = `
       <div class="rowLeft">
+          <input type="checkbox" class="bulkCheck" data-id="${d.id}" />
         <img class="thumb" src="${d.photo}" alt="" />
         <div class="rowText">
           <div class="rowMeta">
@@ -347,6 +351,20 @@ async function init(){
     applyFilters();
     alert("Локальные изменения очищены.");
   });
+  deleteSelectedBtn.addEventListener("click", ()=>{
+  const checked = [...document.querySelectorAll(".bulkCheck:checked")];
+  if(!checked.length){
+    alert("Выберите блюда для удаления.");
+    return;
+  }
+
+  if(!confirm("Удалить выбранные блюда?")) return;
+
+  const ids = checked.map(cb => cb.dataset.id);
+  dishes = dishes.filter(d => !ids.includes(d.id));
+
+  persist();
+});
 
   fillDeliverySelect();
   dishes = await loadDishes();
