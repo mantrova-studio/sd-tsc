@@ -1,6 +1,11 @@
 (function () {
 
-  const GEOJSON_URL = "data/zones/zones_day.geojson";
+  const mode = new URLSearchParams(location.search).get("mode");
+
+const GEOJSON_URL =
+  mode === "night"
+    ? "data/zones/zones_night.geojson"
+    : "data/zones/zones_day.geojson";
   const CITY_HINT = "Оренбург, Россия";
   const NOMINATIM_COUNTRY = "ru";
 
