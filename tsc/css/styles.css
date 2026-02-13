@@ -612,3 +612,22 @@ a{ color:inherit; text-decoration:none; }
   font-size:18px;
   cursor:pointer;
 }
+
+/* Кнопки зума за интерфейсом */
+.leaflet-control-zoom{
+  z-index: 50 !important;
+}
+
+/* Весь UI страницы выше карты */
+.topbar{
+  position:relative;
+  z-index:200;
+}
+.zoneInfo{
+  position:relative;
+  z-index:200;
+}
+
+.leaflet-control-attribution{
+  display:none !important;
+}
