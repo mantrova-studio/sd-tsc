@@ -229,7 +229,7 @@ export async function githubUploadFile(path, base64Content, message){
     throw new Error("GITHUB_TOKEN не задан");
   }
 
-  const api = https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path};
+  const api = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
 
   const body = {
     message,
@@ -239,7 +239,7 @@ export async function githubUploadFile(path, base64Content, message){
   const res = await fetch(api, {
     method: "PUT",
     headers: {
-      "Authorization": token ${GITHUB_TOKEN},
+      "Authorization": `token ${GITHUB_TOKEN}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify(body)
