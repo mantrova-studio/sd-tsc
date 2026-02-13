@@ -261,7 +261,85 @@ function removeDish(id){
   persist();
 }
 
-вставить сюда
+async function saveDish(){
+  const id = (f_id.value || "").trim();
+  const delivery = (f_delivery.value || "").trim();
+  const category = (f_category.value || "").trim();
+  const name = (f_name.value || "").trim();
+  const description = (f_desc.value || "").toString();
+
+  if(!id || !delivery || !category || !name || !description){
+    alert("Заполни все поля.");
+    return;
+  }
+
+  // по умолчанию: при edit оставляем старое фото, при add — заглушка
+  let photoPath = (editMode === "edit")
+    ? (dishes.find(x => x.id === editingId)?.photo || PLACEHOLDER_PHOTO)
+    : PLACEHOLDER_PHOTO;
+
+  // ===== ЗАГРУЗКА ФОТО =====
+  if(f_photo && f_photo.files && f_photo.files[0]){
+    const file = f_photo.files[0];
+
+    const baseName = name.toLowerCase().replace(/[^a-z0-9а-яё]/gi,"_");
+    let fileName = baseName + ".jpg";
+    let counter = 1;
+
+    while(dishes.some(d => (d.photo || "").includes(fileName))){
+      fileName = baseName + "_" + counter + ".jpg";
+      counter++;
+    }
+
+    const reader = new FileReader();
+
+    const base64 = await new Promise(resolve=>{
+      reader.onload = ()=> resolve(reader.result.split(",")[1]);
+      reader.readAsDataURL(file);
+    });
+
+    await githubUploadFile(
+      `tsc/assets/photos/${fileName}`,
+      base64,
+      `Upload photo ${fileName}`
+    );
+
+    photoPath = `assets/photos/${fileName}`;
+  }
+
+  if(editMode === "add"){
+    if(dishes.some(x=>x.id === id)){
+      alert("ID уже существует.");
+      return;
+    }
+
+    dishes = normalizeDishes([...dishes, {
+      id,
+      delivery,
+      category,
+      name,
+      photo: photoPath,
+      description
+    }]);
+
+  } else {
+
+    dishes = normalizeDishes(dishes.map(x=>{
+      if(x.id !== editingId) return x;
+      return {
+        ...x,
+        delivery,
+        category,
+        name,
+        photo: photoPath || x.photo || PLACEHOLDER_PHOTO,
+        description
+      };
+    }));
+  }
+
+  persist();
+  closeModalFn();
+}
 
 function exportJson(){
   const text = JSON.stringify(dishes, null, 2);
