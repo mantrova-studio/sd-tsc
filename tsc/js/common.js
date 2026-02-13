@@ -223,6 +223,36 @@ export async function githubSaveDishes(dishes){
   return await putRes.json();
 }
 
+// ===== GitHub upload file (для фото) =====
+export async function githubUploadFile(path, base64Content, message){
+  if(!GITHUB_TOKEN){
+    throw new Error("GITHUB_TOKEN не задан");
+  }
+
+  const api = https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path};
+
+  const body = {
+    message,
+    content: base64Content
+  };
+
+  const res = await fetch(api, {
+    method: "PUT",
+    headers: {
+      "Authorization": token ${GITHUB_TOKEN},
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  if(!res.ok){
+    const t = await res.text();
+    throw new Error("GitHub upload failed: " + t);
+  }
+
+  return await res.json();
+}
+
 // ===== Sort options =====
 export const SORT_OPTIONS = [
   "Название A→Z",
