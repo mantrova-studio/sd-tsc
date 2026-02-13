@@ -63,7 +63,7 @@
     const zoneName = p.zone || p.Name || p.name || "Зона";
     const description = p.description || p.note || "";
 
-    const title = price = '${zoneName} (День)';
+    const title = '${zoneName} (День)';
 
     showInfo(`
       <div style="font-size:16px;font-weight:700;margin-bottom:8px;">
