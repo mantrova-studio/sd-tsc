@@ -1,237 +1,196 @@
-(function () {
-  const dbg2 = (t) => {
-    const el = document.getElementById("dbg2");
-    if (el) el.textContent = "DBG2: " + t;
+const mode = new URLSearchParams(location.search).get("mode") || "day";
+
+// пока только день
+const GEOJSON_URL = "data/zones/zones_day.geojson";
+
+// Подсказка, чтобы Nominatim не уводил в другие города
+const CITY_HINT = "Оренбург, Россия";
+
+// Можно жёстче ограничить страну и район (полезно!)
+const NOMINATIM_COUNTRY = "ru";
+
+const backBtn = document.getElementById("backBtn");
+const addrInput = document.getElementById("addrInput");
+const clearAddr = document.getElementById("clearAddr");
+const suggest = document.getElementById("addrSuggest");
+const zoneInfo = document.getElementById("zoneInfo");
+
+backBtn.addEventListener("click", ()=>history.length > 1 ? history.back() : (location.href="index.html"));
+
+clearAddr.style.display = "none";
+clearAddr.addEventListener("click", ()=>{
+  addrInput.value = "";
+  clearAddr.style.display = "none";
+  suggest.style.display = "none";
+  zoneInfo.style.display = "none";
+});
+
+function showInfo(html){
+  zoneInfo.innerHTML = html;
+  zoneInfo.style.display = "block";
+}
+
+// ----- карта -----
+const map = L.map("map", { zoomControl: true });
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: "&copy; OpenStreetMap"
+}).addTo(map);
+
+let zonesGeo = null;
+let zonesLayer = null;
+let marker = null;
+
+function zoneStyle(){
+  return { weight: 2, opacity: 1, fillOpacity: 0.25 };
+}
+
+function highlightLayer(layer){
+  if(!zonesLayer) return;
+  zonesLayer.eachLayer(l=>zonesLayer.resetStyle(l));
+  layer.setStyle({ weight: 3, fillOpacity: 0.35 });
+}
+
+async function loadZones(){
+  const res = await fetch(GEOJSON_URL, { cache: "no-store" });
+  zonesGeo = await res.json();
+
+  // рисуем ТОЛЬКО полигоны (точки отдельно)
+  const onlyPolys = {
+    type: "FeatureCollection",
+    features: (zonesGeo.features || []).filter(f =>
+      f?.geometry?.type === "Polygon" || f?.geometry?.type === "MultiPolygon"
+    )
   };
 
-  const mode = new URLSearchParams(location.search).get("mode") || "day";
-  const GEOJSON_URL =
-    mode === "night"
-      ? "data/zones/zones_night.geojson"
-      : "data/zones/zones_day.geojson";
+  if(zonesLayer) zonesLayer.remove();
 
-  const CITY_HINT = "Оренбург, Россия";
-  const NOMINATIM_COUNTRY = "ru";
+  zonesLayer = L.geoJSON(onlyPolys, {
+    style: zoneStyle,
+    onEachFeature: (feature, layer)=>{
+      layer.on("click", ()=>{
+        highlightLayer(layer);
+        showZone(feature.properties || {});
+      });
+    }
+  }).addTo(map);
 
-  // элементы
-  const backBtn = document.getElementById("backBtn");
-  const addrInput = document.getElementById("addrInput");
-  const clearAddr = document.getElementById("clearAddr");
-  const suggest = document.getElementById("addrSuggest");
-  const zoneInfo = document.getElementById("zoneInfo");
+  map.fitBounds(zonesLayer.getBounds(), { padding: [20, 20] });
+}
 
-  function showInfo(html) {
-    zoneInfo.innerHTML = html;
-    zoneInfo.style.display = "block";
+function showZone(p){
+  const zone = p.zone  p.Name  "Зона";
+  const price = p.delivery_price ?? "—";
+  const min = p.min_order ?? "—";
+
+  showInfo(
+    <div><b>${zone}</b> <span class="muted">(День)</span></div>
+    <div>Стоимость доставки: <b>${price}</b> ₽</div>
+    <div>Минимальная сумма заказа: <b>${min}</b> ₽</div>
+  );
+}
+
+function findZoneForPoint(lat, lon){
+  if(!zonesGeo) return null;
+  const pt = turf.point([lon, lat]);
+
+  for(const f of (zonesGeo.features || [])){
+    const t = f?.geometry?.type;
+    if(t !== "Polygon" && t !== "MultiPolygon") continue;
+
+    try{
+      if(turf.booleanPointInPolygon(pt, f)) return f;
+    }catch(e){}
   }
+  return null;
+}
 
-  backBtn.addEventListener("click", () => {
-    if (history.length > 1) history.back();
-    else location.href = "index.html";
-  });
+function setMarker(lat, lon){
+  if(marker) marker.remove();
+  marker = L.marker([lat, lon]).addTo(map);
+  map.setView([lat, lon], Math.max(map.getZoom(), 14));
+}
 
-  clearAddr.style.display = "none";
-  clearAddr.addEventListener("click", () => {
-    addrInput.value = "";
-    clearAddr.style.display = "none";
+// ----- подсказки адресов (Nominatim) -----
+let tmr = null;
+
+async function fetchSuggest(q){
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("format", "json");
+  url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("limit", "7");
+  url.searchParams.set("countrycodes", NOMINATIM_COUNTRY);
+  url.searchParams.set("q", ${q}, ${CITY_HINT});
+
+  const res = await fetch(url.toString(), { headers: { "Accept": "application/json" } });
+  return await res.json();
+}
+
+function renderSuggest(list){
+  suggest.innerHTML = "";
+  if(!list.length){
     suggest.style.display = "none";
-    zoneInfo.style.display = "none";
-  });
-
-  // карта
-  const mapEl = document.getElementById("map");
-  if (!mapEl) {
-    dbg2("нет #map");
     return;
   }
 
-  const map = L.map("map", { zoomControl: true });
-  const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-  });
-  tiles.on("load", () => dbg2("tiles loaded ✅"));
-  tiles.on("tileerror", () => dbg2("tile error ❌"));
-  tiles.addTo(map);
+  for(const item of list){
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "addrItem";
+    btn.textContent = item.display_name;
 
-  // важно для мобилок
-  setTimeout(() => map.invalidateSize(true), 300);
-  setTimeout(() => map.invalidateSize(true), 900);
+    btn.addEventListener("click", ()=>{
+      suggest.style.display = "none";
+      addrInput.value = item.display_name;
+      clearAddr.style.display = "block";
+      const lat = Number(item.lat);
+      const lon = Number(item.lon);
 
-  let zonesGeo = null;
-  let zonesLayer = null;
-  let marker = null;
+      setMarker(lat, lon);
 
-  function zoneStyle() {
-    return { weight: 2, opacity: 1, fillOpacity: 0.25 };
-  }
-
-  function highlightLayer(layer) {
-    if (!zonesLayer) return;
-    zonesLayer.eachLayer((l) => zonesLayer.resetStyle(l));
-    layer.setStyle({ weight: 3, fillOpacity: 0.35 });
-  }
-
-  function showZone(p) {
-    const zone = p.zone || p.Name || p.name || "Зона";
-    const price = p.delivery_price ?? "—";
-    const min = p.min_order ?? "—";
-
-    showInfo(`
-      <div><b>${zone}</b> <span class="muted">(${mode === "night" ? "Ночь" : "День"})</span></div>
-      <div>Стоимость доставки: <b>${price}</b> ₽</div>
-      <div>Минимальная сумма заказа: <b>${min}</b> ₽</div>
-    `);
-  }
-
-  function setMarker(lat, lon) {
-    if (marker) marker.remove();
-    marker = L.marker([lat, lon]).addTo(map);
-    map.setView([lat, lon], Math.max(map.getZoom(), 14));
-  }
-
-  function findZoneForPoint(lat, lon) {
-    if (!zonesGeo) return null;
-    const pt = turf.point([lon, lat]);
-
-    for (const f of zonesGeo.features || []) {
-      const t = f?.geometry?.type;
-      if (t !== "Polygon" && t !== "MultiPolygon") continue;
-      try {
-        if (turf.booleanPointInPolygon(pt, f)) return f;
-      } catch (e) {}
-    }
-    return null;
-  }
-
-  async function loadZones() {
-    try {
-      dbg2("loading zones…");
-      const res = await fetch(GEOJSON_URL, { cache: "no-store" });
-      dbg2("zones HTTP " + res.status);
-
-      if (!res.ok) {
-        showInfo(`<div><b>Не удалось загрузить зоны</b></div><div class="muted">${GEOJSON_URL} — HTTP ${res.status}</div>`);
-        return;
+      const zoneFeature = findZoneForPoint(lat, lon);
+      if(zoneFeature){
+        // подсветим
+        zonesLayer.eachLayer(layer=>{
+          if(layer.feature === zoneFeature) highlightLayer(layer);
+        });
+        showZone(zoneFeature.properties || {});
+      }else{
+        showInfo(<div><b>Адрес вне зон доставки</b></div><div class="muted">Проверь адрес или добавь зону на карте.</div>);
       }
+    });
 
-      zonesGeo = await res.json();
-
-      const onlyPolys = {
-        type: "FeatureCollection",
-        features: (zonesGeo.features || []).filter(
-          (f) => f?.geometry?.type === "Polygon" || f?.geometry?.type === "MultiPolygon"
-        ),
-      };
-
-      if (zonesLayer) zonesLayer.remove();
-
-      zonesLayer = L.geoJSON(onlyPolys, {
-        style: zoneStyle,
-        onEachFeature: (feature, layer) => {
-          layer.on("click", () => {
-            highlightLayer(layer);
-            showZone(feature.properties || {});
-          });
-        },
-      }).addTo(map);
-
-      if (onlyPolys.features.length) {
-        map.fitBounds(zonesLayer.getBounds(), { padding: [20, 20] });
-        dbg2("zones drawn ✅ (" + onlyPolys.features.length + ")");
-      } else {
-        dbg2("no polygons");
-        showInfo(`<div><b>В GeoJSON нет полигонов</b></div><div class="muted">Проверь экспорт зон.</div>`);
-      }
-
-      // пересчёт размеров после добавления слоёв
-      setTimeout(() => map.invalidateSize(true), 300);
-      setTimeout(() => map.invalidateSize(true), 900);
-    } catch (e) {
-      dbg2("zones error");
-      showInfo(`<div><b>Ошибка</b></div><div class="muted">${String(e?.message || e)}</div>`);
-    }
+    suggest.appendChild(btn);
   }
 
-  // подсказки адресов
-  let tmr = null;
+  suggest.style.display = "block";
+}
 
-  async function fetchSuggest(q) {
-    const url = new URL("https://nominatim.openstreetmap.org/search");
-    url.searchParams.set("format", "json");
-    url.searchParams.set("addressdetails", "1");
-    url.searchParams.set("limit", "7");
-    url.searchParams.set("countrycodes", NOMINATIM_COUNTRY);
-    url.searchParams.set("q", `${q}, ${CITY_HINT}`);
+addrInput.addEventListener("input", ()=>{
+  const q = addrInput.value.trim();
+  clearAddr.style.display = q ? "block" : "none";
 
-    const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
-    return await res.json();
+  if(tmr) clearTimeout(tmr);
+  if(q.length < 3){
+    suggest.style.display = "none";
+    return;
   }
 
-  function renderSuggest(list) {
-    suggest.innerHTML = "";
-    if (!list.length) {
-      suggest.style.display = "none";
-      return;
+  tmr = setTimeout(async ()=>{
+    try{
+      const list = await fetchSuggest(q);
+      renderSuggest(list);
+    }catch(e){
+      console.error(e);
     }
+  }, 350);
+});
 
-    for (const item of list) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "addrItem";
-      btn.textContent = item.display_name;
-
-      btn.addEventListener("click", () => {
-        suggest.style.display = "none";
-        addrInput.value = item.display_name;
-        clearAddr.style.display = "block";
-
-        const lat = Number(item.lat);
-        const lon = Number(item.lon);
-
-        setMarker(lat, lon);
-
-        const z = findZoneForPoint(lat, lon);
-        if (z) {
-          zonesLayer.eachLayer((layer) => {
-            if (layer.feature === z) highlightLayer(layer);
-          });
-          showZone(z.properties || {});
-        } else {
-          showInfo(`<div><b>Адрес вне зон доставки</b></div><div class="muted">Проверь адрес или добавь зону.</div>`);
-        }
-      });
-
-      suggest.appendChild(btn);
-    }
-
-    suggest.style.display = "block";
+document.addEventListener("click", (e)=>{
+  if(!suggest.contains(e.target) && e.target !== addrInput){
+    suggest.style.display = "none";
   }
+});
 
-  addrInput.addEventListener("input", () => {
-    const q = addrInput.value.trim();
-    clearAddr.style.display = q ? "block" : "none";
-
-    if (tmr) clearTimeout(tmr);
-
-    if (q.length < 3) {
-      suggest.style.display = "none";
-      return;
-    }
-
-    tmr = setTimeout(async () => {
-      try {
-        const list = await fetchSuggest(q);
-        renderSuggest(list);
-      } catch (e) {}
-    }, 350);
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!suggest.contains(e.target) && e.target !== addrInput) {
-      suggest.style.display = "none";
-    }
-  });
-
-  // старт
-  loadZones();
-})();
+// старт
+loadZones();
