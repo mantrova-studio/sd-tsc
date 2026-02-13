@@ -230,6 +230,7 @@ function openAdd(){
   f_category.value = "";
   f_name.value = "";
   f_desc.value = "";
+  if(f_photo) f_photo.value = "";
 
   openModal();
 }
@@ -248,6 +249,7 @@ function openEdit(id){
   f_category.value = d.category;
   f_name.value = d.name;
   f_desc.value = d.description;
+  if(f_photo) f_photo.value = "";
 
   openModal();
 }
