@@ -4,11 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Зоны доставки</title>
+
   <link rel="stylesheet" href="css/styles.css" />
 
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 </head>
+
 <body>
   <div class="topbar">
     <div class="container">
@@ -25,7 +28,9 @@
 
       <div class="controls" style="padding-top:0;">
         <div class="searchWrap" style="max-width:520px;">
-          <input id="addrInput" placeholder="Оренбург: введите адрес..." autocomplete="off" />
+          <input id="addrInput"
+                 placeholder="Оренбург: введите адрес..."
+                 autocomplete="off" />
           <button class="iconBtn" id="clearAddr" title="Очистить">✕</button>
           <div class="addrSuggest" id="addrSuggest" style="display:none;"></div>
         </div>
@@ -36,14 +41,14 @@
   </div>
 
   <div style="padding:14px;">
-    <div id="map" class="zoneMap"></div>
+    <div id="map" class="zoneMap" style="height:70vh;max-height:680px;"></div>
   </div>
 
   <!-- Leaflet + Turf -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-  <script src="/tsc/js/zones.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+  <!-- ВАЖНО: абсолютный путь -->
+  <script src="/tsc/js/zones.js?v=1"></script>
 </body>
-
 </html>
-
