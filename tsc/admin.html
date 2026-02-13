@@ -68,6 +68,7 @@
         <button class="smallBtn" id="saveGithubBtn" type="button">Сохранить изменения</button>
         <button class="smallBtn" id="exportBtn" type="button">Экспорт JSON</button>
         <button class="smallBtn danger" id="resetBtn" type="button">Сбросить локальные</button>
+        <button id="deleteSelectedBtn" class="dangerBtn">Удалить выбранные</button>
         <button class="smallBtn" id="logoutBtn" type="button">Выйти</button>
       </div>
     </div>
@@ -111,9 +112,12 @@
             </div>
 
             <div class="field" style="grid-column:1/-1;">
-              <label>Фото</label>
-              <input value="Используется заглушка (assets/photos/placeholder.jpg)" disabled />
-            </div>
+  <label>Фото</label>
+  <input type="file" id="dishPhoto" accept="image/*" />
+  <small style="opacity:.6;">
+    Если фото не выбрано — будет использована заглушка.
+  </small>
+</div>
           </div>
         </form>
       </div>
@@ -124,6 +128,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/admin.js"></script>
+  <script src="js/admin.js"></script>
 </body>
 </html>
