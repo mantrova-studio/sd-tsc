@@ -46,16 +46,17 @@
   function zoneStyle(feature) {
     return {
       weight: 2,
-      opacity: 1,
-      fillOpacity: 0.25,
-      color: feature?.properties?.color || "#ff4f9d"
+      color: "#2b3a55",      // контур
+      fillColor: "#1e2a42",  // заливка
+      fillOpacity: 0.35,
+      opacity: 1
     };
   }
 
   function highlightLayer(layer) {
     if (!zonesLayer) return;
     zonesLayer.eachLayer((l) => zonesLayer.resetStyle(l));
-    layer.setStyle({ weight: 3, fillOpacity: 0.35 });
+    layer.setStyle({ weight: 3, fillOpacity: 0.5, color: "#3f5b87", fillColor: "#243654" });
   }
 
   // ===== НОВЫЙ ФОРМАТ ВЫВОДА =====
