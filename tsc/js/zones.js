@@ -61,12 +61,9 @@
   // ===== НОВЫЙ ФОРМАТ ВЫВОДА =====
   function showZone(p) {
     const zoneName = p.zone || p.Name || p.name || "Зона";
-    const price = p.delivery_price ?? "";
     const description = p.description || p.note || "";
 
-    const title = price
-      ? `${zoneName} — ${price} ₽ (День)`
-      : `${zoneName} (День)`;
+    const title = price = '${zoneName} (День)';
 
     showInfo(`
       <div style="font-size:16px;font-weight:700;margin-bottom:8px;">
