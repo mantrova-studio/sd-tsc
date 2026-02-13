@@ -1,11 +1,6 @@
 (function () {
 
-  const mode = new URLSearchParams(location.search).get("mode") || "day";
-  const GEOJSON_URL =
-    mode === "night"
-      ? "data/zones/zones_night.geojson"
-      : "data/zones/zones_day.geojson";
-
+  const GEOJSON_URL = "data/zones/zones_day.geojson";
   const CITY_HINT = "Оренбург, Россия";
   const NOMINATIM_COUNTRY = "ru";
 
@@ -33,6 +28,8 @@
     zoneInfo.style.display = "none";
   });
 
+  // ===== КАРТА =====
+
   const map = L.map("map", { zoomControl: true });
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -46,8 +43,13 @@
   let zonesLayer = null;
   let marker = null;
 
-  function zoneStyle() {
-    return { weight: 2, opacity: 1, fillOpacity: 0.25 };
+  function zoneStyle(feature) {
+    return {
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.25,
+      color: feature?.properties?.color || "#ff4f9d"
+    };
   }
 
   function highlightLayer(layer) {
@@ -56,17 +58,23 @@
     layer.setStyle({ weight: 3, fillOpacity: 0.35 });
   }
 
+  // ===== НОВЫЙ ФОРМАТ ВЫВОДА =====
   function showZone(p) {
-    const zone = p.zone || p.Name || p.name || "Зона";
-    const price = p.delivery_price ?? "—";
-    const min = p.min_order ?? "—";
+    const zoneName = p.zone || p.Name || p.name || "Зона";
+    const price = p.delivery_price ?? "";
+    const description = p.description || p.note || "";
+
+    const title = price
+      ? `${zoneName} — ${price} ₽ (День)`
+      : `${zoneName} (День)`;
 
     showInfo(`
-      <div><b>${zone}</b> <span class="muted">
-        (${mode === "night" ? "Ночь" : "День"})
-      </span></div>
-      <div>Стоимость доставки: <b>${price}</b> ₽</div>
-      <div>Минимальная сумма заказа: <b>${min}</b> ₽</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px;">
+        ${title}
+      </div>
+      <div style="opacity:.85;line-height:1.5;">
+        ${description}
+      </div>
     `);
   }
 
@@ -123,6 +131,8 @@
       setTimeout(() => map.invalidateSize(true), 300);
     } catch {}
   }
+
+  // ===== ПОИСК =====
 
   let tmr = null;
 
@@ -210,4 +220,5 @@
   });
 
   loadZones();
+
 })();
