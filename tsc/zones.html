@@ -4,14 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Зоны доставки</title>
-
-  <!-- твои стили TSC -->
   <link rel="stylesheet" href="css/styles.css" />
 
-  <!-- Leaflet (CDN) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
-
 <body>
   <div class="topbar">
     <div class="container">
@@ -38,42 +35,14 @@
     </div>
   </div>
 
-  <!-- Блок карты (важно: height задан прямо тут, чтобы точно была высота) -->
-  <div style="padding:14px;">
-    <div id="map" class="zoneMap" style="height:70vh;max-height:680px;"></div>
-  </div>
-
-  <!-- DBG плашка (временная) -->
-  <div id="dbg" style="
-    position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;
-    padding:10px 12px;border-radius:14px;background:rgba(21,25,36,.95);
-    border:1px solid rgba(42,50,70,.95);color:#e9edf5;font-weight:900;font-family:system-ui;">
-    DBG: …
-  </div>
-
-  <div id="dbg2" style="
-    position:fixed;left:12px;right:12px;bottom:58px;z-index:99999;
-    padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.45);
-    border:1px solid rgba(42,50,70,.95);color:#fff;font:800 14px/1.2 system-ui;">
-    DBG2: …
-  </div>
+  <main class="container" style="padding-top:14px;">
+    <div id="map" class="zoneMap"></div>
+  </main>
 
   <!-- Leaflet + Turf -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-
-  <!-- Диагностика: Leaflet/Turf загрузились -->
-  <script>
-    window.addEventListener("load", () => {
-      const hasL = typeof window.L !== "undefined";
-      const hasT = typeof window.turf !== "undefined";
-      document.getElementById("dbg").textContent =
-        "DBG: Leaflet=" + (hasL ? "OK" : "NO") + ", Turf=" + (hasT ? "OK" : "NO");
-    });
-  </script>
-
-  <!-- ВАЖНО: абсолютный путь, чтобы точно работало на домене -->
-  <script src="/tsc/js/zones.js?v=5"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+  <script src="/tsc/js/zones.js"></script>
 </body>
+
 </html>
-```0
