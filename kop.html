@@ -10,20 +10,27 @@
     margin:0;
     background:#000;
     font-family: system-ui, -apple-system, sans-serif;
+    min-height:100vh;
     display:flex;
     justify-content:center;
-    padding:40px 10px;
+    padding:30px 10px 90px;
+    color:#fff;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:900px;
   }
 
   .grid{
     width:100%;
-    max-width:900px;
     display:grid;
     grid-template-columns: repeat(10, 1fr);
     gap:12px;
   }
 
   .btn{
+    user-select:none;
     background:rgba(255,255,255,0.06);
     border:1px solid rgba(255,255,255,0.2);
     border-radius:10px;
@@ -32,7 +39,7 @@
     font-weight:600;
     text-align:center;
     cursor:pointer;
-    transition:all .15s ease;
+    transition:background .15s ease, transform .06s ease, opacity .12s ease;
     backdrop-filter: blur(6px);
   }
 
@@ -41,36 +48,107 @@
   }
 
   .btn:active{
-    transform:scale(0.95);
+    transform:scale(0.97);
+  }
+
+  /* Прозрачная, но кликабельная */
+  .btn.hidden{
+    opacity:0;
+  }
+
+  .sumBar{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:18px;
+    display:flex;
+    justify-content:center;
+    pointer-events:none;
+  }
+
+  .sumPill{
+    padding:10px 16px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.22);
+    backdrop-filter: blur(10px);
+    box-shadow:0 10px 24px rgba(0,0,0,0.45);
+    font-weight:700;
+    letter-spacing:.2px;
   }
 
   @media(max-width:700px){
-    .grid{
-      grid-template-columns: repeat(5, 1fr);
-    }
+    .grid{ grid-template-columns: repeat(5, 1fr); }
   }
-
-  @media(max-width:400px){
-    .grid{
-      grid-template-columns: repeat(3, 1fr);
-    }
+  @media(max-width:420px){
+    .grid{ grid-template-columns: repeat(3, 1fr); }
   }
-
 </style>
 </head>
-<body>
 
-<div class="grid" id="grid"></div>
+<body>
+  <div class="wrap">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="sumBar">
+    <div class="sumPill" id="sumPill">Сумма: 0</div>
+  </div>
 
 <script>
   const grid = document.getElementById("grid");
+  const sumPill = document.getElementById("sumPill");
 
-  for(let i = 10; i <= 1000; i += 10){
+  const STORAGE_KEY = "hidden_buttons_v1";
+  const hidden = new Set(loadHidden());
+
+  function loadHidden(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr.map(Number) : [];
+    }catch{
+      return [];
+    }
+  }
+
+  function saveHidden(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...hidden]));
+  }
+
+  function updateSum(){
+    let sum = 0;
+    hidden.forEach(v => sum += v);
+    sumPill.textContent = "Сумма: " + sum;
+  }
+
+  function makeBtn(value){
     const btn = document.createElement("div");
     btn.className = "btn";
-    btn.textContent = i;
-    grid.appendChild(btn);
+    btn.textContent = value;
+
+    if(hidden.has(value)) btn.classList.add("hidden");
+
+    btn.addEventListener("click", ()=>{
+      if(hidden.has(value)){
+        hidden.delete(value);
+        btn.classList.remove("hidden");
+      }else{
+        hidden.add(value);
+        btn.classList.add("hidden");
+      }
+      saveHidden();
+      updateSum();
+    });
+
+    return btn;
   }
+
+  for(let i = 10; i <= 1000; i += 10){
+    grid.appendChild(makeBtn(i));
+  }
+
+  updateSum();
 </script>
 
 </body>
