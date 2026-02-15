@@ -127,6 +127,8 @@ const GEOJSON_URL =
         },
       }).addTo(map);
 
+      addZonePriceLabels(geojson);
+
       if (onlyPolys.features.length) {
         map.fitBounds(zonesLayer.getBounds(), { padding: [20, 20] });
       }
