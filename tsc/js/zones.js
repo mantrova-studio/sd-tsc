@@ -227,3 +227,71 @@ const GEOJSON_URL =
   loadZones();
 
 })();
+
+let priceLabelsLayer = null;
+
+function getZonePrice(feature){
+  const p = feature.properties || {};
+  // Подстрой под твои поля в geojson:
+  // варианты: price, cost, delivery_price, "Стоимость", etc
+  const raw =
+    p.price ?? p.cost ?? p.delivery_price ?? p.deliveryCost ?? p["Стоимость"] ?? p["cost_rub"];
+
+  if(raw === undefined || raw === null) return null;
+
+  // если "300 ₽" -> вытащим число/текст как есть
+  const s = raw.toString().trim();
+  return s;
+}
+
+function featureCenterLatLng(feature){
+  // Лучше всего: leaflet bounds center (работает надежно)
+  // Leaflet сам умеет: L.geoJSON(feature).getBounds().getCenter()
+  const tmp = L.geoJSON(feature);
+  const c = tmp.getBounds().getCenter();
+  tmp.remove();
+  return c;
+}
+
+function addZonePriceLabels(geojson){
+  // очистим старые
+  if(priceLabelsLayer){
+    priceLabelsLayer.clearLayers();
+    priceLabelsLayer.remove();
+  }
+  priceLabelsLayer = L.layerGroup().addTo(map);
+
+  (geojson.features || []).forEach(f=>{
+    const price = getZonePrice(f);
+    if(!price) return;
+
+    const center = featureCenterLatLng(f);
+
+    const html = `
+      <div class="zonePriceLabel">
+        <div class="zonePriceBadge">
+          <span>${escapeHtml(String(price).replace("₽","").trim())}</span>
+          <span class="rub">₽</span>
+        </div>
+      </div>
+    `;
+
+    const icon = L.divIcon({
+      className: "", // чтобы leaflet не добавлял свои стили
+      html,
+      iconSize: [0,0] // размеры не нужны, мы центрируем через transform
+    });
+
+    L.marker(center, { icon, interactive: false }).addTo(priceLabelsLayer);
+  });
+}
+
+// простая защита от html в свойствах
+function escapeHtml(str){
+  return (str ?? "").toString()
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
