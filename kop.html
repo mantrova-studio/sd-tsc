@@ -1,87 +1,77 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TSC — Числа</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кнопки</title>
 
-  <link rel="stylesheet" href="tsc/css/styles.css" />
+<style>
+  body{
+    margin:0;
+    background:#000;
+    font-family: system-ui, -apple-system, sans-serif;
+    display:flex;
+    justify-content:center;
+    padding:40px 10px;
+  }
 
-  <style>
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: color:black;
-    }
+  .grid{
+    width:100%;
+    max-width:900px;
+    display:grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap:12px;
+  }
 
-    .wrap{
-      max-width:1200px;
-      margin:0 auto;
-      padding:40px 20px;
-    }
+  .btn{
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.2);
+    border-radius:10px;
+    padding:10px 0;
+    color:#fff;
+    font-weight:600;
+    text-align:center;
+    cursor:pointer;
+    transition:all .15s ease;
+    backdrop-filter: blur(6px);
+  }
 
-    .title{
-      text-align:center;
-      font-size:32px;
-      font-weight:800;
-      margin-bottom:40px;
-      letter-spacing:1px;
-    }
+  .btn:hover{
+    background:rgba(255,255,255,0.15);
+  }
 
+  .btn:active{
+    transform:scale(0.95);
+  }
+
+  @media(max-width:700px){
     .grid{
-      display:grid;
-      grid-template-columns: repeat(10, 1fr);
-      gap:10px;
+      grid-template-columns: repeat(5, 1fr);
     }
+  }
 
-    .numBtn{
-      padding:10px 0;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,0.3);
-      background: color:black;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      color:#fff;
-      font-weight:600;
-      cursor:pointer;
-      transition: all .15s ease;
+  @media(max-width:400px){
+    .grid{
+      grid-template-columns: repeat(3, 1fr);
     }
+  }
 
-    .numBtn:hover{
-      background: color:black;
-      transform: translateY(-2px);
-    }
-
-    .numBtn:active{
-      transform: scale(0.96);
-    }
-
-    @media(max-width:900px){
-      .grid{ grid-template-columns: repeat(5,1fr); }
-    }
-
-    @media(max-width:600px){
-      .grid{ grid-template-columns: repeat(3,1fr); }
-    }
-  </style>
+</style>
 </head>
-
 <body>
-  <div class="wrap">
-    <div class="title">TSC — Кнопки</div>
-    <div class="grid" id="grid"></div>
-  </div>
 
-  <script>
-    const grid = document.getElementById("grid");
+<div class="grid" id="grid"></div>
 
-    for(let i=10; i<=1000; i+=10){
-      const btn = document.createElement("button");
-      btn.className = "numBtn";
-      btn.textContent = i;
-      btn.addEventListener("click", ()=>alert("Нажато: " + i));
-      grid.appendChild(btn);
-    }
-  </script>
+<script>
+  const grid = document.getElementById("grid");
+
+  for(let i = 10; i <= 1000; i += 10){
+    const btn = document.createElement("div");
+    btn.className = "btn";
+    btn.textContent = i;
+    grid.appendChild(btn);
+  }
+</script>
+
 </body>
 </html>
