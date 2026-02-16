@@ -698,3 +698,43 @@ a{ color:inherit; text-decoration:none; }
   max-height: calc(100vh - 40px);
   overflow: auto;
 }
+
+/* ===== Scroll To Top (TSC style) ===== */
+.toTopBtn{
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5500;
+
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.07);
+  color: #fff;
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.45);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease, background .2s ease;
+}
+
+.toTopBtn:hover{
+  background: rgba(255,255,255,0.12);
+}
+
+.toTopBtn.show{
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
