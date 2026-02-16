@@ -76,5 +76,22 @@
 </button>
 
   <script type="module" src="js/app.js"></script>
+
+<script>
+const toTopBtn = document.getElementById("toTopBtn");
+if(toTopBtn){
+  const toggle = ()=>{
+    if(window.scrollY > 400) toTopBtn.classList.add("show");
+    else toTopBtn.classList.remove("show");
+  };
+
+  window.addEventListener("scroll", toggle, { passive: true });
+  toggle();
+
+  toTopBtn.addEventListener("click", ()=>{
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
+</script>
 </body>
 </html>
