@@ -469,6 +469,23 @@ async function init(){
   setupDropdowns();
   wireSearch();
   applyFilters();
+
+// ===== Scroll To Top =====
+  const toTopBtn = document.querySelector("#toTopBtn");
+  if(toTopBtn){
+    const toggle = ()=>{
+      if(window.scrollY > 400) toTopBtn.classList.add("show");
+      else toTopBtn.classList.remove("show");
+    };
+
+    window.addEventListener("scroll", toggle, { passive: true });
+    toggle();
+
+    toTopBtn.addEventListener("click", ()=>{
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
 }
 
 init();
