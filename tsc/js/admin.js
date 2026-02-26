@@ -5,10 +5,288 @@ import {
   PLACEHOLDER_PHOTO,
   ADMIN_PASSWORD, isAdmin, setAdminSession,
   setOverride, clearOverride,
-  downloadTextFile,
-  githubSaveDishes, githubUploadFile
+  downloadTextFile
 } from "./common.js";
 
+/* =========================
+   GitHub settings (techcards)
+========================= */
+const GITHUB_OWNER = "mantrova-studio";
+const GITHUB_REPO  = "sd-tsc"; // <-- если репо другое, поменяй тут
+
+// Авто-определение базовой папки проекта внутри репо (например "tsc/")
+function guessBaseDir(){
+  const parts = (location.pathname || "").split("/").filter(Boolean);
+  const idx = parts.indexOf("tsc");     // если сайт лежит в /tsc/
+  if(idx >= 0) return "tsc";
+  const idx2 = parts.indexOf("tech");   // если вдруг лежит в /tech/
+  if(idx2 >= 0) return "tech";
+  return ""; // корень
+}
+const BASE_DIR = guessBaseDir(); // "" | "tsc" | ...
+
+const GH_DISHES_PATH = `${BASE_DIR ? BASE_DIR + "/" : ""}data/dishes.json`;
+const GH_PHOTOS_DIR  = `${BASE_DIR ? BASE_DIR + "/" : ""}assets/photos/`;
+
+/* =========================
+   Token modal + toast (uses your HTML #tokenWrap + #toast)
+========================= */
+const TOKEN_SESSION_KEY = "tsc_tc_token_session_v1";
+const TOKEN_LOCAL_KEY   = "tsc_tc_token_local_v1";
+
+function getSavedToken(){
+  return sessionStorage.getItem(TOKEN_SESSION_KEY)
+    || localStorage.getItem(TOKEN_LOCAL_KEY)
+    || "";
+}
+function saveToken(token, remember){
+  if(remember){
+    localStorage.setItem(TOKEN_LOCAL_KEY, token);
+    sessionStorage.removeItem(TOKEN_SESSION_KEY);
+  }else{
+    sessionStorage.setItem(TOKEN_SESSION_KEY, token);
+    localStorage.removeItem(TOKEN_LOCAL_KEY);
+  }
+}
+function clearSavedToken(){
+  sessionStorage.removeItem(TOKEN_SESSION_KEY);
+  localStorage.removeItem(TOKEN_LOCAL_KEY);
+}
+
+function escapeHtml(s){
+  return (s ?? "").toString()
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function showToast(title, text, ms = 3500){
+  const el = document.getElementById("toast");
+  if(!el) return;
+  el.innerHTML = `
+    <div class="tTitle">${escapeHtml(title)}</div>
+    <div class="tText">${escapeHtml(text)}</div>
+  `;
+  el.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=> el.classList.remove("show"), ms);
+}
+
+function openTokenModal({ title = "GitHub Token", prefill = "" } = {}){
+  const wrap = document.getElementById("tokenWrap");
+  const input = document.getElementById("tokenInput");
+  const remember = document.getElementById("tokenRemember");
+  const err = document.getElementById("tokenError");
+  const closeX = document.getElementById("tokenClose");
+  const cancel = document.getElementById("tokenCancel");
+  const ok = document.getElementById("tokenOk");
+
+  // если модалки в HTML нет — просто fallback
+  if(!wrap || !input || !remember || !ok || !cancel){
+    const t = prompt("Вставь GitHub token:");
+    return Promise.resolve((t || "").trim() || null);
+  }
+
+  // если в твоей верстке есть отдельный title/sub, можно не трогать.
+  // title применим только если есть элемент .tokenTitle
+  const titleEl = wrap.querySelector(".tokenTitle");
+  if(titleEl) titleEl.textContent = title;
+
+  const open = ()=>{
+    wrap.classList.add("open");
+    wrap.setAttribute("aria-hidden","false");
+    err.style.display = "none";
+    err.textContent = "";
+    input.value = prefill || getSavedToken() || "";
+    remember.checked = !!localStorage.getItem(TOKEN_LOCAL_KEY);
+    setTimeout(()=>input.focus(), 50);
+  };
+  const close = ()=>{
+    wrap.classList.remove("open");
+    wrap.setAttribute("aria-hidden","true");
+  };
+  const showError = (msg)=>{
+    err.textContent = msg || "Ошибка";
+    err.style.display = "block";
+  };
+
+  return new Promise((resolve)=>{
+    open();
+
+    const cleanup = ()=>{
+      ok.removeEventListener("click", onOk);
+      cancel.removeEventListener("click", onCancel);
+      closeX?.removeEventListener("click", onCancel);
+      wrap.removeEventListener("click", onBackdrop);
+      input.removeEventListener("keydown", onKey);
+    };
+
+    const onOk = ()=>{
+      const token = (input.value || "").trim();
+      if(!token) return showError("Вставь токен.");
+      saveToken(token, remember.checked);
+      close();
+      cleanup();
+      resolve(token);
+    };
+
+    const onCancel = ()=>{
+      close();
+      cleanup();
+      resolve(null);
+    };
+
+    const onBackdrop = (e)=>{
+      if(e.target === wrap) onCancel();
+    };
+
+    const onKey = (e)=>{
+      if(e.key === "Enter") onOk();
+      if(e.key === "Escape") onCancel();
+    };
+
+    ok.addEventListener("click", onOk);
+    cancel.addEventListener("click", onCancel);
+    closeX?.addEventListener("click", onCancel); // ✅ крестик работает
+    wrap.addEventListener("click", onBackdrop);
+    input.addEventListener("keydown", onKey);
+  });
+}
+
+/* =========================
+   GitHub API helpers
+========================= */
+function ghHeaders(token){
+  return {
+    "Authorization": `Bearer ${token}`,
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
+}
+
+function toBase64Utf8(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+async function githubGetMeta(path, token){
+  const api = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
+  const res = await fetch(api, { headers: ghHeaders(token) });
+
+  if(res.status === 404) return null;
+  if(!res.ok){
+    const t = await res.text();
+    throw new Error(t);
+  }
+  return await res.json(); // { sha, content? ...}
+}
+
+async function githubPut(path, contentBase64, message, token, sha){
+  const api = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
+
+  const body = {
+    message: message || `Update ${path}`,
+    content: contentBase64
+  };
+  if(sha) body.sha = sha;
+
+  const res = await fetch(api, {
+    method: "PUT",
+    headers: { ...ghHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  if(!res.ok){
+    const t = await res.text();
+    throw new Error(t);
+  }
+  return await res.json();
+}
+
+async function validateToken(token){
+  // лёгкая проверка: читаем мету dishes.json
+  await githubGetMeta(GH_DISHES_PATH, token);
+  return true;
+}
+
+async function ensureToken(){
+  // 1) пробуем сохранённый
+  let token = getSavedToken();
+  if(token){
+    try{
+      await validateToken(token);
+      return token;
+    }catch{
+      clearSavedToken();
+      token = "";
+    }
+  }
+
+  // 2) спрашиваем у пользователя, пока не отменит или не введёт рабочий
+  while(true){
+    const t = await openTokenModal({ title: "Токен для сохранения" });
+    if(!t) return null;
+
+    try{
+      await validateToken(t);
+      return t;
+    }catch(e){
+      // покажем ошибку прямо в токен-окне
+      const err = document.getElementById("tokenError");
+      const wrap = document.getElementById("tokenWrap");
+      if(err && wrap){
+        wrap.classList.add("open");
+        wrap.setAttribute("aria-hidden","false");
+        err.style.display = "block";
+        err.textContent = "Токен не подошёл (истёк / нет прав / не тот репозиторий).\n\n" + (e?.message || "");
+        document.getElementById("tokenInput").value = t;
+      }else{
+        alert("Токен не подошёл: " + (e?.message || e));
+      }
+      // дальше пользователь может снова нажать “Использовать”
+      clearSavedToken();
+    }
+  }
+}
+
+/* =========================
+   UI icons for save button
+========================= */
+const ICON_SPIN = `
+<svg class="spinIcon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+  <path d="M21 12a9 9 0 1 1-3-6.7"/>
+  <path d="M21 3v6h-6"/>
+</svg>`;
+
+const ICON_DONE = `
+<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+  <path d="M20 6L9 17l-5-5"/>
+</svg>`;
+
+function setBtnState(btn, state, fallbackText){
+  // state: "idle" | "spin" | "done"
+  if(!btn) return;
+  if(!btn.dataset.origHtml) btn.dataset.origHtml = btn.innerHTML;
+
+  if(state === "spin"){
+    btn.innerHTML = ICON_SPIN;
+    btn.classList.add("isSpinning");
+    return;
+  }
+  if(state === "done"){
+    btn.innerHTML = ICON_DONE;
+    btn.classList.remove("isSpinning");
+    return;
+  }
+  // idle
+  btn.classList.remove("isSpinning");
+  btn.innerHTML = btn.dataset.origHtml || fallbackText || "Сохранить в GitHub";
+}
+
+/* =========================
+   App state
+========================= */
 let dishes = [];
 let filtered = [];
 
@@ -54,6 +332,9 @@ const f_name = qs("#f_name");
 const f_desc = qs("#f_desc");
 const f_photo = qs("#f_photo");
 
+/* =========================
+   Auth
+========================= */
 async function requireAuth(){
   if(isAdmin()) return true;
 
@@ -120,11 +401,11 @@ async function requireAuth(){
   });
 }
 
+/* =========================
+   Filters / render
+========================= */
 function norm(s){ return (s ?? "").toString().trim().toLowerCase(); }
-
-function getCategories(){
-  return ["Все", ...uniqSorted(dishes.map(d => d.category))];
-}
+function getCategories(){ return ["Все", ...uniqSorted(dishes.map(d => d.category))]; }
 
 function applyFilters(){
   const q = norm(query);
@@ -154,7 +435,7 @@ function renderList(){
 
     row.innerHTML = `
       <div class="rowLeft">
-          <input type="checkbox" class="bulkCheck" data-id="${d.id}" />
+        <input type="checkbox" class="bulkCheck" data-id="${d.id}" />
         <img class="thumb" src="${d.photo}" alt="" />
         <div class="rowText">
           <div class="rowMeta">
@@ -186,8 +467,10 @@ function renderList(){
 function escapeText(s){ return (s ?? "").toString(); }
 function escapeAttr(s){ return (s ?? "").toString().replaceAll('"', "&quot;"); }
 
+/* =========================
+   Persist local override
+========================= */
 function persist(){
-  // сохраняем как локальный override (страховка, пока не нажали "Сохранить в GitHub")
   setOverride(dishes);
   refreshCategoryDropdown();
   applyFilters();
@@ -203,6 +486,9 @@ function refreshCategoryDropdown(){
   buildMenu(categoryMenu, cats, currentCategory);
 }
 
+/* =========================
+   Dropdowns / search
+========================= */
 function setupDropdowns(){
   const deliveryMenu = deliveryDrop.querySelector(".menu");
   buildMenu(deliveryMenu, DELIVERY_LIST, currentDelivery);
@@ -253,6 +539,9 @@ function wireSearch(){
   syncClear();
 }
 
+/* =========================
+   Modal add/edit
+========================= */
 function openModal(){
   modalWrap.classList.add("open");
   modalWrap.setAttribute("aria-hidden","false");
@@ -317,6 +606,43 @@ function removeDish(id){
   persist();
 }
 
+/* =========================
+   Photo upload (uses token)
+========================= */
+async function uploadPhotoToGithub(file, dishName){
+  const token = await ensureToken();
+  if(!token) throw new Error("Сохранение отменено.");
+
+  const baseName = (dishName || "photo").toLowerCase().replace(/[^a-z0-9а-яё]/gi,"_");
+  let fileName = baseName + ".jpg";
+  let counter = 1;
+
+  while(dishes.some(d => (d.photo || "").includes(fileName))){
+    fileName = baseName + "_" + counter + ".jpg";
+    counter++;
+  }
+
+  const base64 = await new Promise((resolve)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(String(reader.result).split(",")[1]);
+    reader.readAsDataURL(file);
+  });
+
+  const fullPath = `${GH_PHOTOS_DIR}${fileName}`;
+  const meta = await githubGetMeta(fullPath, token); // null if not exists
+  const sha = meta?.sha;
+
+  await githubPut(
+    fullPath,
+    base64,
+    `Upload photo ${fileName}`,
+    token,
+    sha
+  );
+
+  return `assets/photos/${fileName}`; // относительный путь в проекте
+}
+
 async function saveDish(){
   const id = (f_id.value || "").trim();
   const delivery = (f_delivery.value || "").trim();
@@ -334,33 +660,9 @@ async function saveDish(){
     ? (dishes.find(x => x.id === editingId)?.photo || PLACEHOLDER_PHOTO)
     : PLACEHOLDER_PHOTO;
 
-  // ===== ЗАГРУЗКА ФОТО =====
+  // загрузка фото (если выбрано)
   if(f_photo && f_photo.files && f_photo.files[0]){
-    const file = f_photo.files[0];
-
-    const baseName = name.toLowerCase().replace(/[^a-z0-9а-яё]/gi,"_");
-    let fileName = baseName + ".jpg";
-    let counter = 1;
-
-    while(dishes.some(d => (d.photo || "").includes(fileName))){
-      fileName = baseName + "_" + counter + ".jpg";
-      counter++;
-    }
-
-    const reader = new FileReader();
-
-    const base64 = await new Promise(resolve=>{
-      reader.onload = ()=> resolve(reader.result.split(",")[1]);
-      reader.readAsDataURL(file);
-    });
-
-    await githubUploadFile(
-      `tsc/assets/photos/${fileName}`,
-      base64,
-      `Upload photo ${fileName}`
-    );
-
-    photoPath = `assets/photos/${fileName}`;
+    photoPath = await uploadPhotoToGithub(f_photo.files[0], name);
   }
 
   if(editMode === "add"){
@@ -397,33 +699,61 @@ async function saveDish(){
   closeModalFn();
 }
 
+/* =========================
+   Export / Save GitHub
+========================= */
 function exportJson(){
   const text = JSON.stringify(dishes, null, 2);
   downloadTextFile("dishes.json", text);
-  alert("Скачан dishes.json. Можно использовать как бэкап.");
+  showToast("Бэкап", "Скачан dishes.json", 2500);
 }
 
 async function saveGithub(){
   try{
     saveGithubBtn.disabled = true;
-    saveGithubBtn.textContent = "Сохраняю...";
-    await githubSaveDishes(dishes);
-    // После успешного коммита можно очистить local override, чтобы не путаться
+    setBtnState(saveGithubBtn, "spin");
+
+    const token = await ensureToken();
+    if(!token){
+      setBtnState(saveGithubBtn, "idle");
+      return;
+    }
+
+    // 1) берём sha текущего dishes.json
+    const meta = await githubGetMeta(GH_DISHES_PATH, token);
+    const sha = meta?.sha;
+
+    // 2) пушим новый json
+    const jsonText = JSON.stringify(dishes, null, 2);
+    await githubPut(
+      GH_DISHES_PATH,
+      toBase64Utf8(jsonText),
+      "Update dishes.json via web",
+      token,
+      sha
+    );
+
+    // ✅ успех
     clearOverride();
-    saveGithubBtn.textContent = "Сохранено ✓";
-    setTimeout(()=> saveGithubBtn.textContent = "Сохранить в GitHub", 1200);
-    alert("Сохранено в GitHub. GitHub Pages обновится автоматически.");
+    setBtnState(saveGithubBtn, "done");
+    showToast("Готово", "Изменения сохранены. Обновление займёт 10–60 секунд.", 4500);
+
+    setTimeout(()=> setBtnState(saveGithubBtn, "idle"), 1400);
+
   }catch(e){
     console.error(e);
-    alert("Ошибка сохранения в GitHub: " + e.message);
-    saveGithubBtn.textContent = "Сохранить в GitHub";
+    setBtnState(saveGithubBtn, "idle");
+    showToast("Ошибка", "Не удалось сохранить: " + (e?.message || e), 5000);
   }finally{
     saveGithubBtn.disabled = false;
   }
 }
 
+/* =========================
+   Init
+========================= */
 async function init(){
-  if(!requireAuth()) return;
+  if(!(await requireAuth())) return;
 
   backToSite.addEventListener("click", ()=> location.href = "index.html");
 
@@ -447,22 +777,21 @@ async function init(){
     dishes = await loadDishes();
     refreshCategoryDropdown();
     applyFilters();
-    alert("Локальные изменения очищены.");
+    showToast("Готово", "Локальные изменения очищены.", 3000);
   });
+
   deleteSelectedBtn.addEventListener("click", ()=>{
-  const checked = [...document.querySelectorAll(".bulkCheck:checked")];
-  if(!checked.length){
-    alert("Выберите блюда для удаления.");
-    return;
-  }
+    const checked = [...document.querySelectorAll(".bulkCheck:checked")];
+    if(!checked.length){
+      alert("Выберите блюда для удаления.");
+      return;
+    }
+    if(!confirm("Удалить выбранные блюда?")) return;
 
-  if(!confirm("Удалить выбранные блюда?")) return;
-
-  const ids = checked.map(cb => cb.dataset.id);
-  dishes = dishes.filter(d => !ids.includes(d.id));
-
-  persist();
-});
+    const ids = checked.map(cb => cb.dataset.id);
+    dishes = dishes.filter(d => !ids.includes(d.id));
+    persist();
+  });
 
   fillDeliverySelect();
   dishes = await loadDishes();
@@ -470,7 +799,7 @@ async function init(){
   wireSearch();
   applyFilters();
 
-// ===== Scroll To Top =====
+  // Scroll To Top
   const toTopBtn = document.querySelector("#toTopBtn");
   if(toTopBtn){
     const toggle = ()=>{
@@ -485,7 +814,6 @@ async function init(){
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
   }
-
 }
 
 init();
