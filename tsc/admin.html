@@ -161,38 +161,44 @@
   </svg>
 </button>
 
-<!-- ===== GitHub Token Modal ===== -->
-<div class="tokenWrap" id="tokenWrap">
-  <div class="tokenModal">
+<!-- ===== Toast (как в копилках) ===== -->
+<div class="toast" id="toast" aria-live="polite"></div>
+
+<!-- ===== GitHub Token modal (как в копилках) ===== -->
+<div class="tokenWrap" id="tokenWrap" aria-hidden="true">
+  <div class="tokenModal" role="dialog" aria-modal="true">
     <div class="tokenHead">
       <div>
-        <div class="tokenTitle">GitHub Token</div>
+        <div class="tokenTitle">Токен для сохранения</div>
         <div class="tokenSub">Нужен для сохранения изменений.</div>
       </div>
-      <button class="iconBtn" id="tokenClose">✕</button>
+
+      <button class="iconBtn" id="tokenClose" type="button" title="Закрыть">✕</button>
     </div>
 
     <div class="tokenBody">
-      <label class="fieldLabel">Token</label>
-      <input id="tokenInput" class="input" type="password" placeholder="github_pat_..." />
+      <label class="fieldLabel" for="tokenInput">Token</label>
+      <input id="tokenInput" class="input" type="password"
+             placeholder="ghp_… или github_pat_…" autocomplete="off" />
 
       <label class="checkRow">
         <input id="tokenRemember" type="checkbox" />
         <span>Запомнить</span>
       </label>
 
-      <div class="tokenErr" id="tokenError"></div>
+      <div class="tokenErr" id="tokenError" style="display:none;"></div>
 
       <div class="tokenActions">
-        <button class="btn" id="tokenCancel">Отмена</button>
-        <button class="btn primary" id="tokenOk">Использовать</button>
+        <button class="btn" id="tokenCancel" type="button">Отмена</button>
+        <button class="btn primary" id="tokenOk" type="button">Использовать</button>
+      </div>
+
+      <div class="tiny muted" style="margin-top:10px;">
+        * Токен сохранится только в твоём браузере (если включишь “Запомнить”).
       </div>
     </div>
   </div>
 </div>
-
-<!-- Toast -->
-<div class="toast" id="toast"></div>
 
   <script type="module" src="js/admin.js"></script>
 </body>
