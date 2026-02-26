@@ -11,7 +11,7 @@
     <div class="container">
       <div class="backRow">
         <button class="backBtn" id="backToSite" type="button">
-          <img src="assets/icons/back.svg" alt="back" />
+          <img src="/tsc/assets/icons/back.svg" alt="back" />
           <span>Назад</span>
         </button>
       </div>
@@ -61,7 +61,7 @@
 
       <div class="adminActions">
         <button class="smallBtn primary" id="addBtn" type="button">
-          <img src="assets/icons/plus.svg" alt="+" />
+          <img src="/tsc/assets/icons/plus.svg" alt="+" />
           Добавить блюдо
         </button>
 
@@ -70,18 +70,16 @@
         <!-- <button class="smallBtn danger" id="resetBtn" type="button">Сбросить локальные</button> -->
 
         <button class="squareBtn" id="saveGithubBtn" type="button" title="Сохранить в GitHub" aria-label="Сохранить в GitHub">
-          <img src="assets/icons/save.svg" alt="save" />
+          <img src="/tsc/assets/icons/save.svg" alt="save" />
         </button>
 
-        <button class="squareBtn danger" id="deleteSelectedBtn" type="button" title="Удалить выбранные" aria-label="Удалить выбранные">
-          <img src="assets/icons/delete.svg" alt="delete" />
-          <span class="badgeCheck" aria-hidden="true">
-            <img src="assets/icons/check.svg" alt="" />
-          </span>
+        <button class="squareBtn danger is-hidden" id="deleteSelectedBtn" disabled type="button" title="Удалить выбранные" aria-label="Удалить выбранные">
+          <img src="/tsc/assets/icons/delete.svg" alt="delete" />
+          <span class="badgeCount" aria-hidden="true">0</span>
         </button>
 
         <button class="squareBtn" id="logoutBtn" type="button" title="Выйти" aria-label="Выйти">
-          <img src="assets/icons/logout.svg" alt="logout" />
+          <img src="/tsc/assets/icons/logout.svg" alt="logout" />
         </button>
       </div>
     </div>
@@ -214,6 +212,6 @@
   </svg>
 </button>
 
-  <script type="module" src="js/admin.js"></script>
+  <script type="module" src="/tsc/js/admin.js"></script>
 </body>
 </html>
