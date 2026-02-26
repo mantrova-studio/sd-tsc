@@ -765,18 +765,90 @@ a{ color:inherit; text-decoration:none; }
   font-size:13px;
 }
 
+/* ===== Toast (как в копилках) ===== */
 .toast{
-  position:fixed;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-  background: rgba(18,26,42,.95);
-  border:1px solid rgba(43,58,85,.9);
-  border-radius:14px;
-  padding:12px 16px;
-  display:none;
-  z-index:99999;
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%) translateY(16px);
+  width: min(520px, calc(100% - 24px));
+  z-index: 99999;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: .18s ease;
 }
-.toast.show{ display:block; }
-.tTitle{ font-weight:700; margin-bottom:4px; }
-.tText{ font-size:13px; opacity:.8; }
+
+.toast.show{
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.toastBox{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  padding: 12px 12px;
+  border-radius: 16px;
+
+  background: rgba(18,26,42,.92);
+  border: 1px solid rgba(43,58,85,.9);
+  box-shadow: 0 18px 60px rgba(0,0,0,.55);
+  backdrop-filter: blur(10px);
+}
+
+.toastIcon{
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display:grid;
+  place-items:center;
+  flex: 0 0 auto;
+
+  border: 1px solid rgba(43,58,85,.85);
+  background: rgba(30,42,66,.75);
+}
+
+.toastIcon svg{
+  width: 18px;
+  height: 18px;
+  stroke: white;
+  stroke-width: 2;
+  fill: none;
+  opacity: .95;
+}
+
+.toastText{ flex:1; min-width: 0; }
+
+.toastTitle{
+  font-weight: 900;
+  letter-spacing: .02em;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.toastMsg{
+  margin-top: 4px;
+  color: rgba(255,255,255,.65);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.toastClose{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(43,58,85,.85);
+  background: rgba(30,42,66,.65);
+  color: #fff;
+  cursor: pointer;
+  display:grid;
+  place-items:center;
+  flex: 0 0 auto;
+  transition:.15s;
+}
+.toastClose:hover{
+  background: rgba(36,54,84,.85);
+  border-color: rgba(63,91,135,.9);
+}
