@@ -255,7 +255,7 @@ function openTokenModal({ prefFill = true } = {}){
 
     const onCheck = async ()=>{
       setBusy(true);
-      setStatus("Проверяю токен…");
+      setStatus("Проверяю ключ…");
       try{
         const res = await githubValidateToken(tokenInput.value);
         if(res.ok) setStatus(res.message, "ok");
@@ -263,7 +263,7 @@ function openTokenModal({ prefFill = true } = {}){
         return res.ok;
       }catch(err){
         console.error(err);
-        setStatus("Ошибка проверки токена.", "bad");
+        setStatus("Ошибка проверки ключа.", "bad");
         return false;
       }finally{
         setBusy(false);
@@ -446,7 +446,7 @@ async function saveDish(){
     if(!getGithubToken()){
       const t = await openTokenModal({ prefFill:false });
       if(!t){
-        alert("Чтобы загрузить фото, нужен GitHub токен. Операция отменена.");
+        alert("Чтобы загрузить фото, нужен ключ сохранения. Операция отменена.");
         return;
       }
     }
@@ -530,10 +530,10 @@ async function saveGithub(){
     clearOverride();
     saveGithubBtn.dataset.state = "ok";
     setTimeout(()=>{ delete saveGithubBtn.dataset.state; }, 1200);
-    alert("Сохранено в GitHub. GitHub Pages обновится автоматически.");
+    alert("Сохранено. Обновление займёт 10-60 секунд.");
   }catch(e){
     console.error(e);
-    alert("Ошибка сохранения в GitHub: " + e.message);
+    alert("Ошибка сохранения: " + e.message);
   }finally{
     saveGithubBtn.disabled = false;
     delete saveGithubBtn.dataset.loading;
