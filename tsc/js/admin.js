@@ -62,18 +62,74 @@ function escapeHtml(s){
     .replaceAll("'","&#039;");
 }
 
-function showToast(title, text, ms = 3500){
-  const el = document.getElementById("toast");
-  if(!el) return;
-  el.innerHTML = `
-    <div class="tTitle">${escapeHtml(title)}</div>
-    <div class="tText">${escapeHtml(text)}</div>
-  `;
-  el.classList.add("show");
-  clearTimeout(showToast._t);
-  showToast._t = setTimeout(()=> el.classList.remove("show"), ms);
+/* =========================
+   Toast (как в копилках)
+   Требует CSS, который ты добавлял (toast/toastBox/toastIcon/...)
+========================= */
+const TOAST_ICONS = {
+  ok: `
+    <svg viewBox="0 0 24 24">
+      <path d="M20 6L9 17l-5-5"/>
+    </svg>
+  `,
+  err: `
+    <svg viewBox="0 0 24 24">
+      <path d="M12 9v4"/>
+      <path d="M12 17h.01"/>
+      <path d="M10 3h4l7 7v4l-7 7h-4l-7-7v-4z"/>
+    </svg>
+  `,
+  info: `
+    <svg viewBox="0 0 24 24">
+      <path d="M12 8h.01"/>
+      <path d="M11 12h1v6h1"/>
+      <path d="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z"/>
+    </svg>
+  `
+};
+
+function ensureToastHost(){
+  let el = document.getElementById("toast");
+  if(el) return el;
+  el = document.createElement("div");
+  el.id = "toast";
+  el.className = "toast";
+  el.setAttribute("aria-live", "polite");
+  document.body.appendChild(el);
+  return el;
 }
 
+function showToast(title, text, ms = 4500, type = "ok"){
+  const el = ensureToastHost();
+
+  el.innerHTML = `
+    <div class="toastBox">
+      <div class="toastIcon">${TOAST_ICONS[type] || TOAST_ICONS.ok}</div>
+      <div class="toastText">
+        <div class="toastTitle">${escapeHtml(title)}</div>
+        <div class="toastMsg">${escapeHtml(text)}</div>
+      </div>
+      <button class="toastClose" type="button" aria-label="Закрыть">✕</button>
+    </div>
+  `;
+
+  // показать
+  el.classList.add("show");
+
+  const closeBtn = el.querySelector(".toastClose");
+  const close = ()=>{
+    el.classList.remove("show");
+  };
+
+  closeBtn?.addEventListener("click", close, { once:true });
+
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(close, ms);
+}
+
+/* =========================
+   Token modal
+========================= */
 function openTokenModal({ title = "GitHub Token", prefill = "" } = {}){
   const wrap = document.getElementById("tokenWrap");
   const input = document.getElementById("tokenInput");
@@ -89,7 +145,6 @@ function openTokenModal({ title = "GitHub Token", prefill = "" } = {}){
     return Promise.resolve((t || "").trim() || null);
   }
 
-  // если в твоей верстке есть отдельный title/sub, можно не трогать.
   // title применим только если есть элемент .tokenTitle
   const titleEl = wrap.querySelector(".tokenTitle");
   if(titleEl) titleEl.textContent = title;
@@ -97,8 +152,10 @@ function openTokenModal({ title = "GitHub Token", prefill = "" } = {}){
   const open = ()=>{
     wrap.classList.add("open");
     wrap.setAttribute("aria-hidden","false");
-    err.style.display = "none";
-    err.textContent = "";
+    if(err){
+      err.style.display = "none";
+      err.textContent = "";
+    }
     input.value = prefill || getSavedToken() || "";
     remember.checked = !!localStorage.getItem(TOKEN_LOCAL_KEY);
     setTimeout(()=>input.focus(), 50);
@@ -108,6 +165,7 @@ function openTokenModal({ title = "GitHub Token", prefill = "" } = {}){
     wrap.setAttribute("aria-hidden","true");
   };
   const showError = (msg)=>{
+    if(!err) return;
     err.textContent = msg || "Ошибка";
     err.style.display = "block";
   };
@@ -240,9 +298,10 @@ async function ensureToken(){
         wrap.setAttribute("aria-hidden","false");
         err.style.display = "block";
         err.textContent = "Токен не подошёл (истёк / нет прав / не тот репозиторий).\n\n" + (e?.message || "");
-        document.getElementById("tokenInput").value = t;
+        const inp = document.getElementById("tokenInput");
+        if(inp) inp.value = t;
       }else{
-        alert("Токен не подошёл: " + (e?.message || e));
+        showToast("Ошибка", "Токен не подошёл: " + (e?.message || e), 6000, "err");
       }
       // дальше пользователь может снова нажать “Использовать”
       clearSavedToken();
@@ -705,7 +764,7 @@ async function saveDish(){
 function exportJson(){
   const text = JSON.stringify(dishes, null, 2);
   downloadTextFile("dishes.json", text);
-  showToast("Бэкап", "Скачан dishes.json", 2500);
+  showToast("Бэкап", "Скачан dishes.json", 2500, "info");
 }
 
 async function saveGithub(){
@@ -736,14 +795,14 @@ async function saveGithub(){
     // ✅ успех
     clearOverride();
     setBtnState(saveGithubBtn, "done");
-    showToast("Готово", "Изменения сохранены. Обновление займёт 10–60 секунд.", 4500);
+    showToast("Готово", "Изменения сохранены. Обновление займёт 10–60 секунд.", 4500, "ok");
 
     setTimeout(()=> setBtnState(saveGithubBtn, "idle"), 1400);
 
   }catch(e){
     console.error(e);
     setBtnState(saveGithubBtn, "idle");
-    showToast("Ошибка", "Не удалось сохранить: " + (e?.message || e), 5000);
+    showToast("Ошибка", "Не удалось сохранить: " + (e?.message || e), 6500, "err");
   }finally{
     saveGithubBtn.disabled = false;
   }
@@ -777,7 +836,7 @@ async function init(){
     dishes = await loadDishes();
     refreshCategoryDropdown();
     applyFilters();
-    showToast("Готово", "Локальные изменения очищены.", 3000);
+    showToast("Готово", "Локальные изменения очищены.", 3000, "info");
   });
 
   deleteSelectedBtn.addEventListener("click", ()=>{
