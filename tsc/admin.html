@@ -161,6 +161,39 @@
   </svg>
 </button>
 
+<!-- ===== GitHub Token Modal ===== -->
+<div class="tokenWrap" id="tokenWrap">
+  <div class="tokenModal">
+    <div class="tokenHead">
+      <div>
+        <div class="tokenTitle">GitHub Token</div>
+        <div class="tokenSub">Нужен для сохранения изменений.</div>
+      </div>
+      <button class="iconBtn" id="tokenClose">✕</button>
+    </div>
+
+    <div class="tokenBody">
+      <label class="fieldLabel">Token</label>
+      <input id="tokenInput" class="input" type="password" placeholder="github_pat_..." />
+
+      <label class="checkRow">
+        <input id="tokenRemember" type="checkbox" />
+        <span>Запомнить</span>
+      </label>
+
+      <div class="tokenErr" id="tokenError"></div>
+
+      <div class="tokenActions">
+        <button class="btn" id="tokenCancel">Отмена</button>
+        <button class="btn primary" id="tokenOk">Использовать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
   <script type="module" src="js/admin.js"></script>
 </body>
 </html>
