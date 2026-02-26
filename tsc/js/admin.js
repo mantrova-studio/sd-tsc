@@ -6,7 +6,8 @@ import {
   ADMIN_PASSWORD, isAdmin, setAdminSession,
   setOverride, clearOverride,
   downloadTextFile,
-  githubSaveDishes, githubUploadFile
+  githubSaveDishes, githubUploadFile,
+  getGithubToken, setGithubToken, clearGithubToken, githubValidateToken
 } from "./common.js";
 
 let dishes = [];
@@ -26,8 +27,8 @@ const emptyEl = qs("#empty");
 
 const addBtn = qs("#addBtn");
 const saveGithubBtn = qs("#saveGithubBtn");
-const exportBtn = qs("#exportBtn");
-const resetBtn = qs("#resetBtn");
+const exportBtn = qs("#exportBtn"); // может быть закомментирована в HTML
+const resetBtn = qs("#resetBtn");   // может быть закомментирована в HTML
 const logoutBtn = qs("#logoutBtn");
 const deleteSelectedBtn = qs("#deleteSelectedBtn");
 
@@ -53,6 +54,16 @@ const f_category = qs("#f_category");
 const f_name = qs("#f_name");
 const f_desc = qs("#f_desc");
 const f_photo = qs("#f_photo");
+
+// GitHub token modal
+const tokenWrap = qs("#tokenWrap");
+const tokenClose = qs("#tokenClose");
+const tokenCancel = qs("#tokenCancel");
+const tokenInput = qs("#tokenInput");
+const tokenRemember = qs("#tokenRemember");
+const tokenStatus = qs("#tokenStatus");
+const tokenCheckBtn = qs("#tokenCheckBtn");
+const tokenSaveBtn = qs("#tokenSaveBtn");
 
 async function requireAuth(){
   if(isAdmin()) return true;
@@ -191,6 +202,101 @@ function persist(){
   setOverride(dishes);
   refreshCategoryDropdown();
   applyFilters();
+}
+
+function openTokenModal({ prefFill = true } = {}){
+  if(!tokenWrap) return Promise.resolve(null);
+
+  tokenStatus.textContent = "";
+  tokenStatus.className = "tokenStatus";
+
+  const saved = getGithubToken();
+  tokenRemember.checked = !!saved;
+
+  // по умолчанию не светим токен целиком — но даём подсказку, что он сохранён
+  if(prefFill && saved){
+    tokenInput.value = saved;
+  }else{
+    tokenInput.value = "";
+  }
+
+  tokenWrap.classList.add("open");
+  tokenWrap.setAttribute("aria-hidden", "false");
+  setTimeout(()=> tokenInput.focus(), 50);
+
+  return new Promise((resolve)=>{
+    let busy = false;
+
+    const setBusy = (v)=>{
+      busy = v;
+      tokenSaveBtn.disabled = v;
+      tokenCheckBtn.disabled = v;
+    };
+
+    const close = (result)=>{
+      tokenWrap.classList.remove("open");
+      tokenWrap.setAttribute("aria-hidden", "true");
+      cleanup();
+      resolve(result);
+    };
+
+    const setStatus = (text, kind = "")=>{
+      tokenStatus.textContent = text || "";
+      tokenStatus.className = "tokenStatus" + (kind ? ` ${kind}` : "");
+    };
+
+    const onBackdrop = (e)=>{ if(e.target === tokenWrap && !busy) close(null); };
+    const onCancel = ()=>{ if(!busy) close(null); };
+    const onClose = ()=>{ if(!busy) close(null); };
+    const onKey = (e)=>{
+      if(e.key === "Escape") onCancel();
+      if(e.key === "Enter") onSave();
+    };
+
+    const onCheck = async ()=>{
+      setBusy(true);
+      setStatus("Проверяю токен…");
+      try{
+        const res = await githubValidateToken(tokenInput.value);
+        if(res.ok) setStatus(res.message, "ok");
+        else setStatus(res.message, "bad");
+        return res.ok;
+      }catch(err){
+        console.error(err);
+        setStatus("Ошибка проверки токена.", "bad");
+        return false;
+      }finally{
+        setBusy(false);
+      }
+    };
+
+    const onSave = async ()=>{
+      const ok = await onCheck();
+      if(!ok) return;
+
+      const t = (tokenInput.value || "").trim();
+      if(tokenRemember.checked) setGithubToken(t);
+      else clearGithubToken();
+
+      close(t);
+    };
+
+    const cleanup = ()=>{
+      tokenWrap.removeEventListener("click", onBackdrop);
+      tokenCancel.removeEventListener("click", onCancel);
+      tokenClose.removeEventListener("click", onClose);
+      tokenCheckBtn.removeEventListener("click", onCheck);
+      tokenSaveBtn.removeEventListener("click", onSave);
+      tokenInput.removeEventListener("keydown", onKey);
+    };
+
+    tokenWrap.addEventListener("click", onBackdrop);
+    tokenCancel.addEventListener("click", onCancel);
+    tokenClose.addEventListener("click", onClose);
+    tokenCheckBtn.addEventListener("click", onCheck);
+    tokenSaveBtn.addEventListener("click", onSave);
+    tokenInput.addEventListener("keydown", onKey);
+  });
 }
 
 function refreshCategoryDropdown(){
@@ -336,6 +442,15 @@ async function saveDish(){
 
   // ===== ЗАГРУЗКА ФОТО =====
   if(f_photo && f_photo.files && f_photo.files[0]){
+    // Для загрузки фото нужен токен (т.к. фото коммитится сразу в репо)
+    if(!getGithubToken()){
+      const t = await openTokenModal({ prefFill:false });
+      if(!t){
+        alert("Чтобы загрузить фото, нужен GitHub токен. Операция отменена.");
+        return;
+      }
+    }
+
     const file = f_photo.files[0];
 
     const baseName = name.toLowerCase().replace(/[^a-z0-9а-яё]/gi,"_");
@@ -405,20 +520,23 @@ function exportJson(){
 
 async function saveGithub(){
   try{
+    const token = await openTokenModal({ prefFill:true });
+    if(!token) return;
+
     saveGithubBtn.disabled = true;
-    saveGithubBtn.textContent = "Сохраняю...";
-    await githubSaveDishes(dishes);
+    saveGithubBtn.dataset.loading = "1";
+    await githubSaveDishes(dishes, token);
     // После успешного коммита можно очистить local override, чтобы не путаться
     clearOverride();
-    saveGithubBtn.textContent = "Сохранено ✓";
-    setTimeout(()=> saveGithubBtn.textContent = "Сохранить в GitHub", 1200);
+    saveGithubBtn.dataset.state = "ok";
+    setTimeout(()=>{ delete saveGithubBtn.dataset.state; }, 1200);
     alert("Сохранено в GitHub. GitHub Pages обновится автоматически.");
   }catch(e){
     console.error(e);
     alert("Ошибка сохранения в GitHub: " + e.message);
-    saveGithubBtn.textContent = "Сохранить в GitHub";
   }finally{
     saveGithubBtn.disabled = false;
+    delete saveGithubBtn.dataset.loading;
   }
 }
 
@@ -438,10 +556,10 @@ async function init(){
   modalWrap.addEventListener("click", (e)=>{ if(e.target === modalWrap) closeModalFn(); });
   saveBtn.addEventListener("click", saveDish);
 
-  exportBtn.addEventListener("click", exportJson);
+  if(exportBtn) exportBtn.addEventListener("click", exportJson);
   saveGithubBtn.addEventListener("click", saveGithub);
 
-  resetBtn.addEventListener("click", async ()=>{
+  if(resetBtn) resetBtn.addEventListener("click", async ()=>{
     if(!confirm("Сбросить локальные изменения (localStorage)?")) return;
     clearOverride();
     dishes = await loadDishes();
