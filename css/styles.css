@@ -409,7 +409,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .adminActions{
   display:flex;
-  gap:8px;
+  gap:6px;
   flex-wrap:wrap;
 }
 .adminList{
