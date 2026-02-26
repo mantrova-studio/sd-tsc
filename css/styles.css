@@ -812,3 +812,7 @@ a{ color:inherit; text-decoration:none; }
   transform: translateY(0);
   pointer-events: auto;
 }
+
+
+/* Utility */
+.is-hidden{display:none !important;}
