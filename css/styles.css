@@ -739,7 +739,9 @@ a{ color:inherit; text-decoration:none; }
   pointer-events: auto;
 }
 
-/* ===== Token modal (TSC like piggy) ===== */
+/* =========================
+   Token modal (как в копилках)
+========================= */
 .tokenWrap{
   position:fixed;
   inset:0;
@@ -810,13 +812,9 @@ a{ color:inherit; text-decoration:none; }
   white-space: pre-wrap;
 }
 
-/* ===== Save button spinner support ===== */
-.isSpinning svg.spinIcon{
-  animation: spin360 1s linear infinite;
-}
-@keyframes spin360{ to{ transform: rotate(360deg); } }
-
-/* ===== Toast (как в копилках) ===== */
+/* =========================
+   Toast (как в копилках)
+========================= */
 .toast{
   position: fixed;
   left: 12px;
@@ -837,4 +835,63 @@ a{ color:inherit; text-decoration:none; }
   border-radius: 16px;
   background: rgba(18,26,42,.92);
   border: 1px solid rgba(43,58,85,.9);
-  box
+  box-shadow: 0 18px 60px rgba(0,0,0,.55);
+  backdrop-filter: blur(8px);
+}
+
+.toastIcon{
+  width:38px; height:38px;
+  border-radius: 12px;
+  display:grid;
+  place-items:center;
+  background: rgba(30,42,66,.75);
+  border:1px solid rgba(43,58,85,.85);
+  flex: 0 0 auto;
+}
+.toastIcon svg{
+  width:18px; height:18px;
+  stroke:white;
+  stroke-width:2;
+  fill:none;
+  opacity:.9;
+}
+
+.toastText{ flex:1 1 auto; }
+.toastTitle{
+  font-weight:900;
+  font-size:14px;
+  letter-spacing:.02em;
+}
+.toastMsg{
+  margin-top:3px;
+  font-size:13px;
+  color: rgba(255,255,255,.7);
+  line-height:1.35;
+}
+
+.toastClose{
+  width:36px;
+  height:36px;
+  border-radius: 12px;
+  border:1px solid rgba(43,58,85,.85);
+  background: rgba(30,42,66,.75);
+  color:#fff;
+  cursor:pointer;
+  display:grid;
+  place-items:center;
+}
+.toastClose:hover{
+  background: rgba(36,54,84,.85);
+  border-color: rgba(63,91,135,.9);
+}
+
+/* =========================
+   SVG spinner для кнопки "Сохранить"
+   (admin.js ставит class "isSpinning" и svg имеет class "spinIcon")
+========================= */
+.isSpinning svg.spinIcon{
+  animation: spin360 1s linear infinite;
+}
+@keyframes spin360{
+  to{ transform: rotate(360deg); }
+}
