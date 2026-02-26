@@ -171,24 +171,24 @@
 <div class="modalWrap" id="tokenWrap" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true">
     <div class="modalHead">
-      <h3>Сохранение в GitHub</h3>
+      <h3>Ключ сохранения</h3>
       <button class="iconBtn" id="tokenClose" type="button" title="Закрыть">✕</button>
     </div>
 
     <div class="modalBody">
       <div class="formGrid" style="grid-template-columns: 1fr;">
         <div class="field" style="grid-column:1/-1;">
-          <label>GitHub Token (PAT)</label>
-          <input id="tokenInput" type="password" placeholder="ghp_… или github_pat_…" autocomplete="off" />
+          <!--<label>GitHub Token (PAT)</label>-->
+          <input id="tokenInput" type="password" placeholder="вставьте ключ сохранения..." autocomplete="off" />
           <small class="hintText">
-            Токен нужен для коммита изменений и загрузки фото в репозиторий.
+            Ключ нужен для сохранения измениний на сервер.
           </small>
         </div>
 
         <div class="tokenRow" style="grid-column:1/-1;">
           <label class="checkLine">
             <input id="tokenRemember" type="checkbox" />
-            <span>Запомнить токен на этом устройстве</span>
+            <span>Запомнить ключ на этом устройстве</span>
           </label>
 
           <button class="smallBtn" id="tokenCheckBtn" type="button">
