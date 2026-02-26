@@ -4,10 +4,58 @@ export const ADMIN_PASSWORD = "601/18";
 
 // ===== GitHub API (очень простой вариант: токен в коде) =====
 // ВАЖНО: Этот токен будет виден всем, кто откроет сайт. Вы просили так.
-export const GITHUB_TOKEN = "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";      // <-- вставь токен
 export const GITHUB_OWNER = "mantrova-studio";       // <-- твой username
 export const GITHUB_REPO  = "sd-tsc";                // <-- имя репозитория
 export const GITHUB_PATH  = "tsc/data/dishes.json";           // <-- путь файла в репо
+
+// =========================
+// GitHub token storage (admin)
+// =========================
+// Храним токен в localStorage, чтобы не держать его в коде.
+// NOTE: localStorage не является «секретным» хранилищем. Это просто удобство.
+const LS_GITHUB_TOKEN_KEY = "tsc_github_token";
+
+export function getGithubToken(){
+  try{ return localStorage.getItem(LS_GITHUB_TOKEN_KEY) || ""; }
+  catch(_e){ return ""; }
+}
+
+export function setGithubToken(token){
+  try{ localStorage.setItem(LS_GITHUB_TOKEN_KEY, (token || "").trim()); }
+  catch(_e){}
+}
+
+export function clearGithubToken(){
+  try{ localStorage.removeItem(LS_GITHUB_TOKEN_KEY); }
+  catch(_e){}
+}
+
+export async function githubValidateToken(token){
+  const t = (token || "").trim();
+  if(!t) return { ok:false, message:"Введите токен." };
+
+  // 1) Проверяем, что токен вообще валидный
+  const u = await fetch("https://api.github.com/user", {
+    headers: { "Authorization": `token ${t}` }
+  });
+  if(u.status === 401) return { ok:false, message:"Токен недействителен (401)." };
+  if(u.status === 403) return { ok:false, message:"Доступ запрещён (403). Проверьте права токена." };
+  if(!u.ok) return { ok:false, message:`Ошибка проверки токена (${u.status}).` };
+
+  let login = "";
+  try{ login = (await u.json())?.login || ""; }catch(_e){}
+
+  // 2) Проверяем доступ к репозиторию (нужны права на запись для коммита)
+  const r = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}`, {
+    headers: { "Authorization": `token ${t}` }
+  });
+  if(r.status === 404) return { ok:false, message:"Репозиторий не найден или нет доступа." };
+  if(r.status === 401) return { ok:false, message:"Токен недействителен (401)." };
+  if(r.status === 403) return { ok:false, message:"Нет доступа к репозиторию (403)." };
+  if(!r.ok) return { ok:false, message:`Ошибка доступа к репозиторию (${r.status}).` };
+
+  return { ok:true, message: login ? `Токен рабочий. Аккаунт: ${login}` : "Токен рабочий." };
+}
 
 export const PLACEHOLDER_PHOTO = "assets/photos/placeholder.jpg";
 
@@ -174,9 +222,10 @@ function toBase64Utf8(str){
   return btoa(unescape(encodeURIComponent(str)));
 }
 
-export async function githubSaveDishes(dishes){
-  if(!GITHUB_TOKEN || GITHUB_TOKEN.includes("PASTE_YOUR_TOKEN_HERE")){
-    throw new Error("GITHUB_TOKEN не задан в js/common.js");
+export async function githubSaveDishes(dishes, token = getGithubToken()){
+  const GITHUB_TOKEN = (token || "").trim();
+  if(!GITHUB_TOKEN){
+    throw new Error("GitHub токен не задан. Нажмите \"Сохранить в GitHub\" и введите токен.");
   }
   if(!GITHUB_OWNER || GITHUB_OWNER.includes("YOUR_GITHUB_USERNAME")){
     throw new Error("GITHUB_OWNER не задан в js/common.js");
@@ -225,9 +274,8 @@ export async function githubSaveDishes(dishes){
 
 // ===== GitHub upload file (для фото) =====
 export async function githubUploadFile(path, base64Content, message){
-  if(!GITHUB_TOKEN){
-    throw new Error("GITHUB_TOKEN не задан");
-  }
+  const GITHUB_TOKEN = (getGithubToken() || "").trim();
+  if(!GITHUB_TOKEN) throw new Error("GitHub токен не задан. Сначала нажмите \"Сохранить в GitHub\" и сохраните токен.");
 
   const api = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
 
