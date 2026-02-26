@@ -30,7 +30,27 @@ const saveGithubBtn = qs("#saveGithubBtn");
 const exportBtn = qs("#exportBtn"); // может быть закомментирована в HTML
 const resetBtn = qs("#resetBtn");   // может быть закомментирована в HTML
 const logoutBtn = qs("#logoutBtn");
-const deleteSelectedBtn = qs("#deleteSelectedBtn");
+const deleteSelectedBtn = qs("#deleteSelectedBtn");// Нормализуем пути, чтобы работало и на /tsc/admin.html, и если сервер откроет как /tsc/admin
+function resolveTscPath(p){
+  if(!p) return p;
+  const str = String(p);
+  if(str.startsWith("http://") || str.startsWith("https://")) return str;
+  if(str.startsWith("/")) return str;
+  if(str.startsWith("assets/")) return "/tsc/" + str;
+  return str; // на всякий случай
+}
+
+function updateBulkDeleteBtn(){
+  if(!deleteSelectedBtn) return;
+  const selectedCount = document.querySelectorAll(".bulkCheck:checked").length;
+  const shouldShow = selectedCount > 0;
+
+  deleteSelectedBtn.classList.toggle("is-hidden", !shouldShow);
+  deleteSelectedBtn.disabled = !shouldShow;
+
+  const badge = deleteSelectedBtn.querySelector(".badgeCount");
+  if(badge) badge.textContent = String(selectedCount);
+}
 
 const deliveryDrop = qs("#deliveryDrop");
 const categoryDrop = qs("#categoryDrop");
@@ -155,6 +175,7 @@ function renderList(){
 
   if(!filtered.length){
     emptyEl.style.display = "block";
+    updateBulkDeleteBtn();
     return;
   }
   emptyEl.style.display = "none";
@@ -166,7 +187,7 @@ function renderList(){
     row.innerHTML = `
       <div class="rowLeft">
           <input type="checkbox" class="bulkCheck" data-id="${d.id}" />
-        <img class="thumb" src="${d.photo}" alt="" />
+        <img class="thumb" src="${resolveTscPath(d.photo)}" alt="" />
         <div class="rowText">
           <div class="rowMeta">
             <span>${d.delivery}</span>
@@ -179,10 +200,10 @@ function renderList(){
 
       <div class="rowRight">
         <button class="iconBtn" data-act="edit" title="Редактировать">
-          <img src="assets/icons/edit.svg" alt="edit" />
+          <img src="/tsc/assets/icons/edit.svg" alt="edit" />
         </button>
         <button class="iconBtn delete" data-act="delete" title="Удалить">
-          <img src="assets/icons/delete.svg" alt="delete" />
+          <img src="/tsc/assets/icons/delete.svg" alt="delete" />
         </button>
       </div>
     `;
@@ -192,6 +213,7 @@ function renderList(){
 
     listEl.appendChild(row);
   }
+  updateBulkDeleteBtn();
 }
 
 function escapeText(s){ return (s ?? "").toString(); }
@@ -202,6 +224,12 @@ function persist(){
   setOverride(dishes);
   refreshCategoryDropdown();
   applyFilters();
+
+  // показывать/скрывать кнопку удаления выбранных
+  listEl.addEventListener("change", (e)=>{
+    const t = e.target;
+    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
+  });
 }
 
 function openTokenModal({ prefFill = true } = {}){
@@ -317,6 +345,12 @@ function setupDropdowns(){
     setText(deliveryValue, val);
     buildMenu(deliveryMenu, DELIVERY_LIST, currentDelivery);
     applyFilters();
+
+  // показывать/скрывать кнопку удаления выбранных
+  listEl.addEventListener("change", (e)=>{
+    const t = e.target;
+    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
+  });
   });
 
   const categoryMenu = categoryDrop.querySelector(".menu");
@@ -326,6 +360,12 @@ function setupDropdowns(){
     setText(categoryValue, val);
     buildMenu(categoryMenu, getCategories(), currentCategory);
     applyFilters();
+
+  // показывать/скрывать кнопку удаления выбранных
+  listEl.addEventListener("change", (e)=>{
+    const t = e.target;
+    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
+  });
   });
 
   const sortMenu = sortDrop.querySelector(".menu");
@@ -335,6 +375,12 @@ function setupDropdowns(){
     setText(sortValue, val);
     buildMenu(sortMenu, SORT_OPTIONS, currentSort);
     applyFilters();
+
+  // показывать/скрывать кнопку удаления выбранных
+  listEl.addEventListener("change", (e)=>{
+    const t = e.target;
+    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
+  });
   });
 }
 
@@ -346,6 +392,12 @@ function wireSearch(){
     query = searchInput.value;
     syncClear();
     applyFilters();
+
+  // показывать/скрывать кнопку удаления выбранных
+  listEl.addEventListener("change", (e)=>{
+    const t = e.target;
+    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
+  });
   });
 
   clearSearch.addEventListener("click", ()=>{
@@ -353,6 +405,12 @@ function wireSearch(){
     query = "";
     syncClear();
     applyFilters();
+
+  // показывать/скрывать кнопку удаления выбранных
+  listEl.addEventListener("change", (e)=>{
+    const t = e.target;
+    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
+  });
     searchInput.focus();
   });
 
@@ -565,6 +623,12 @@ async function init(){
     dishes = await loadDishes();
     refreshCategoryDropdown();
     applyFilters();
+
+  // показывать/скрывать кнопку удаления выбранных
+  listEl.addEventListener("change", (e)=>{
+    const t = e.target;
+    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
+  });
     alert("Локальные изменения очищены.");
   });
   deleteSelectedBtn.addEventListener("click", ()=>{
@@ -587,6 +651,12 @@ async function init(){
   setupDropdowns();
   wireSearch();
   applyFilters();
+
+  // показывать/скрывать кнопку удаления выбранных
+  listEl.addEventListener("change", (e)=>{
+    const t = e.target;
+    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
+  });
 
 // ===== Scroll To Top =====
   const toTopBtn = document.querySelector("#toTopBtn");
