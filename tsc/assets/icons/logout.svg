@@ -4,15 +4,15 @@
      viewBox="0 0 24 24"
      fill="none"
      stroke="white"
-     stroke-width="2"
+     stroke-width="1.8"
      stroke-linecap="round"
      stroke-linejoin="round">
 
-  <!-- Круг -->
-  <path d="M12 3
-           A9 9 0 1 1 6.3 5.7"/>
+  <!-- Разорванный круг -->
+  <path d="M6.2 6.2
+           A9 9 0 1 0 17.8 6.2" />
 
-  <!-- Вертикальная линия -->
-  <line x1="12" y1="3" x2="12" y2="11"/>
+  <!-- Центральная палочка -->
+  <line x1="12" y1="3.5" x2="12" y2="11"/>
 
 </svg>
