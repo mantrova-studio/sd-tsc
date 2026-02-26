@@ -50,13 +50,8 @@ function updateBulkDeleteBtn(){
   const selectedCount = document.querySelectorAll(".bulkCheck:checked").length;
   const shouldShow = selectedCount > 0;
 
-  // показываем кнопку только если выбрано хоть одно блюдо
   deleteSelectedBtn.classList.toggle("is-hidden", !shouldShow);
   deleteSelectedBtn.disabled = !shouldShow;
-
-  // бейдж с количеством выбранных
-  const badge = deleteSelectedBtn.querySelector(".badgeCount");
-  if(badge) badge.textContent = String(selectedCount);
 }
 
 const deliveryDrop = qs("#deliveryDrop");
@@ -395,7 +390,7 @@ async function init(){
     }
   });
 
-  // ===== Scroll To Top =====
+// ===== Scroll To Top =====
   const toTopBtn = document.querySelector("#toTopBtn")
   window.addEventListener("scroll", ()=>{
     if(window.scrollY > 600){
