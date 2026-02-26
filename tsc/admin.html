@@ -65,11 +65,24 @@
           Добавить блюдо
         </button>
 
-        <button class="smallBtn" id="saveGithubBtn" type="button">Сохранить изменения</button>
-        <button class="smallBtn" id="exportBtn" type="button">Экспорт JSON</button>
-        <button class="smallBtn danger" id="resetBtn" type="button">Сбросить локальные</button>
-        <button class="smallBtn danger" id="deleteSelectedBtn" type="button">Удалить выбранные</button>
-        <button class="smallBtn" id="logoutBtn" type="button">Выйти</button>
+        <!-- Кнопки ниже в будущем можно вернуть. Сейчас скрываем по просьбе. -->
+        <!-- <button class="smallBtn" id="exportBtn" type="button">Экспорт JSON</button> -->
+        <!-- <button class="smallBtn danger" id="resetBtn" type="button">Сбросить локальные</button> -->
+
+        <button class="squareBtn" id="saveGithubBtn" type="button" title="Сохранить в GitHub" aria-label="Сохранить в GitHub">
+          <img src="assets/icons/save.svg" alt="save" />
+        </button>
+
+        <button class="squareBtn danger" id="deleteSelectedBtn" type="button" title="Удалить выбранные" aria-label="Удалить выбранные">
+          <img src="assets/icons/delete.svg" alt="delete" />
+          <span class="badgeCheck" aria-hidden="true">
+            <img src="assets/icons/check.svg" alt="" />
+          </span>
+        </button>
+
+        <button class="squareBtn" id="logoutBtn" type="button" title="Выйти" aria-label="Выйти">
+          <img src="assets/icons/logout.svg" alt="logout" />
+        </button>
       </div>
     </div>
 
@@ -113,7 +126,7 @@
 
             <div class="field" style="grid-column:1/-1;">
   <label>Фото</label>
-  <input type="file" id="f_Photo" accept="image/*" />
+  <input type="file" id="f_photo" accept="image/*" />
   <small style="opacity:.6;">
     Если фото не выбрано — будет использована заглушка.
   </small>
@@ -150,6 +163,46 @@
     <div class="modalFoot">
       <button class="smallBtn" id="loginCancel" type="button">Назад</button>
       <button class="smallBtn primary" id="loginOk" type="button">Войти</button>
+    </div>
+  </div>
+</div>
+
+<!-- GITHUB TOKEN MODAL -->
+<div class="modalWrap" id="tokenWrap" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modalHead">
+      <h3>Сохранение в GitHub</h3>
+      <button class="iconBtn" id="tokenClose" type="button" title="Закрыть">✕</button>
+    </div>
+
+    <div class="modalBody">
+      <div class="formGrid" style="grid-template-columns: 1fr;">
+        <div class="field" style="grid-column:1/-1;">
+          <label>GitHub Token (PAT)</label>
+          <input id="tokenInput" type="password" placeholder="ghp_… или github_pat_…" autocomplete="off" />
+          <small class="hintText">
+            Токен нужен для коммита изменений и загрузки фото в репозиторий.
+          </small>
+        </div>
+
+        <div class="tokenRow" style="grid-column:1/-1;">
+          <label class="checkLine">
+            <input id="tokenRemember" type="checkbox" />
+            <span>Запомнить токен на этом устройстве</span>
+          </label>
+
+          <button class="smallBtn" id="tokenCheckBtn" type="button">
+            Проверить
+          </button>
+        </div>
+
+        <div id="tokenStatus" class="tokenStatus" style="grid-column:1/-1;"></div>
+      </div>
+    </div>
+
+    <div class="modalFoot">
+      <button class="smallBtn" id="tokenCancel" type="button">Отмена</button>
+      <button class="smallBtn primary" id="tokenSaveBtn" type="button">Сохранить</button>
     </div>
   </div>
 </div>
