@@ -15,83 +15,74 @@
           <span>Назад</span>
         </button>
       </div>
+      <div class="headerRow" style="padding-top:0;">
+        <h1 class="siteTitle">СЫТНАЯ ДОСТАВКА<br/>Технологические карты</h1>
+      </div>
+
+      <div class="controls">
+        <div class="dropdown" id="deliveryDrop">
+          <button class="dropBtn" type="button">
+            <span class="label">Доставка:</span>
+            <span class="value" id="deliveryValue">Все</span>
+            <span class="chev">▼</span>
+          </button>
+          <div class="menu"></div>
+        </div>
+
+        <div class="dropdown" id="categoryDrop">
+          <button class="dropBtn" type="button">
+            <span class="label">Категория:</span>
+            <span class="value" id="categoryValue">Все</span>
+            <span class="chev">▼</span>
+          </button>
+          <div class="menu"></div>
+        </div>
+
+        <div class="dropdown" id="sortDrop">
+          <button class="dropBtn" type="button">
+            <span class="label">Сортировка:</span>
+            <span class="value" id="sortValue">Название A→Z</span>
+            <span class="chev">▼</span>
+          </button>
+          <div class="menu"></div>
+        </div>
+      </div>
+
+      <div class="searchRow">
+        <input id="searchInput" class="searchInput" type="search" placeholder="Поиск по названию..." />
+        <button id="clearSearch" class="searchClear" type="button" title="Очистить">✕</button>
+      </div>
     </div>
   </div>
 
-  <main class="adminPage">
-    <div class="container">
-      <div class="adminHeader">
-        <div class="adminTitle">
-          <h1>Админ-панель</h1>
-          <div class="adminSub">Технологические карты</div>
-        </div>
+  <main class="container">
+    <div class="adminTop">
+      <h2 class="adminTitle">Панель администратора</h2>
 
-        <div class="adminFilters">
-          <div class="dropWrap">
-            <div class="dropLabel">Доставка</div>
-            <div class="dropdown" id="deliveryDrop">
-              <button class="dropBtn" type="button">
-                <span id="deliveryValue">Все</span>
-                <img src="assets/icons/chev.svg" alt="" />
-              </button>
-              <div class="dropMenu" id="deliveryMenu"></div>
-            </div>
-          </div>
+      <div class="adminActions">
+        <button class="smallBtn primary" id="addBtn" type="button">
+          <img src="assets/icons/plus.svg" alt="+" />
+          Добавить блюдо
+        </button>
 
-          <div class="dropWrap">
-            <div class="dropLabel">Категория</div>
-            <div class="dropdown" id="categoryDrop">
-              <button class="dropBtn" type="button">
-                <span id="categoryValue">Все</span>
-                <img src="assets/icons/chev.svg" alt="" />
-              </button>
-              <div class="dropMenu" id="categoryMenu"></div>
-            </div>
-          </div>
+        <!-- Кнопки ниже в будущем можно вернуть. Сейчас скрываем по просьбе. -->
+        <!-- <button class="smallBtn" id="exportBtn" type="button">Экспорт JSON</button> -->
+        <!-- <button class="smallBtn danger" id="resetBtn" type="button">Сбросить локальные</button> -->
 
-          <div class="dropWrap">
-            <div class="dropLabel">Сортировка</div>
-            <div class="dropdown" id="sortDrop">
-              <button class="dropBtn" type="button">
-                <span id="sortValue">По названию (А–Я)</span>
-                <img src="assets/icons/chev.svg" alt="" />
-              </button>
-              <div class="dropMenu" id="sortMenu"></div>
-            </div>
-          </div>
+        <button class="squareBtn" id="saveGithubBtn" type="button" title="Сохранить в GitHub" aria-label="Сохранить в GitHub">
+          <img src="assets/icons/save.svg" alt="save" />
+        </button>
 
-          <div class="searchWrap">
-            <div class="dropLabel">Поиск</div>
-            <input class="searchInput" id="searchInput" placeholder="Например: Ролл..." />
-          </div>
-        </div>
+        <button class="squareBtn danger" id="deleteSelectedBtn" type="button" title="Удалить выбранные" aria-label="Удалить выбранные">
+          <img src="assets/icons/delete.svg" alt="delete" />
+          <span class="badgeCheck" aria-hidden="true">
+            <img src="assets/icons/check.svg" alt="" />
+          </span>
+        </button>
 
-        <div class="adminActions">
-          <button class="btn primary" id="addBtn" type="button">
-            <img src="assets/icons/plus.svg" alt="+" />
-            Добавить блюдо
-          </button>
-
-          <!-- Кнопки ниже в будущем можно вернуть. Сейчас скрываем по просьбе. -->
-          <!-- <button class="smallBtn" id="exportBtn" type="button">Экспорт JSON</button> -->
-          <!-- <button class="smallBtn danger" id="resetBtn" type="button">Сбросить локальные</button> -->
-
-          <button class="squareBtn" id="saveGithubBtn" type="button" title="Сохранить в GitHub" aria-label="Сохранить в GitHub">
-            <img src="assets/icons/save.svg" alt="save" />
-          </button>
-
-          <!-- ВАЖНО: изначально скрыта, появится когда выбран хотя бы 1 чекбокс -->
-          <button class="squareBtn danger is-hidden" id="deleteSelectedBtn" disabled type="button" title="Удалить выбранные" aria-label="Удалить выбранные">
-            <img src="assets/icons/delete.svg" alt="delete" />
-            <span class="badgeCheck" aria-hidden="true">
-              <img src="assets/icons/check.svg" alt="" />
-            </span>
-          </button>
-
-          <button class="squareBtn" id="logoutBtn" type="button" title="Выйти" aria-label="Выйти">
-            <img src="assets/icons/logout.svg" alt="logout" />
-          </button>
-        </div>
+        <button class="squareBtn" id="logoutBtn" type="button" title="Выйти" aria-label="Выйти">
+          <img src="assets/icons/logout.svg" alt="logout" />
+        </button>
       </div>
     </div>
 
@@ -99,60 +90,129 @@
     <div class="empty" id="empty" style="display:none;">Список пуст.</div>
   </main>
 
-  <!-- Модалка редактирования/добавления -->
-  <div class="modal" id="modal" style="display:none;">
-    <div class="modalCard">
+  <div class="modalWrap" id="modalWrap" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true">
       <div class="modalHead">
-        <div class="modalTitle" id="modalTitle">Редактирование</div>
-        <button class="iconBtn" id="closeModal" type="button" title="Закрыть">
-          <img src="assets/icons/close.svg" alt="x" />
-        </button>
+        <h3 id="modalTitle">Добавить блюдо</h3>
+        <button class="iconBtn" id="closeModal" type="button" title="Закрыть">✕</button>
       </div>
-
       <div class="modalBody">
-        <div class="grid2">
-          <div class="field">
-            <label>Доставка</label>
-            <input id="f_delivery" placeholder="Например: Сытная доставка" />
-          </div>
-          <div class="field">
-            <label>Категория</label>
-            <input id="f_category" placeholder="Например: Супы" />
-          </div>
-        </div>
+        <form id="form">
+          <div class="formGrid">
+            <div class="field">
+              <label>ID (уникальный)</label>
+              <input id="f_id" placeholder="например: sushi-007" required />
+            </div>
 
-        <div class="grid2">
-          <div class="field">
-            <label>Название</label>
-            <input id="f_name" placeholder="Например: Том ям" />
-          </div>
-          <div class="field">
-            <label>ID</label>
-            <input id="f_id" placeholder="auto" />
-          </div>
-        </div>
+            <div class="field">
+              <label>Доставка</label>
+              <select id="f_delivery" required></select>
+            </div>
 
-        <div class="field">
-          <label>Фото (ссылка)</label>
-          <input id="f_photo" placeholder="assets/photos/..." />
-        </div>
+            <div class="field">
+              <label>Категория</label>
+              <input id="f_category" placeholder="например: Роллы" required />
+            </div>
 
-        <div class="field">
-          <label>Описание</label>
-          <textarea id="f_desc" rows="10" placeholder="Состав / техкарта..."></textarea>
-        </div>
+            <div class="field">
+              <label>Название блюда</label>
+              <input id="f_name" placeholder="например: Филадельфия" required />
+            </div>
+
+            <div class="field" style="grid-column:1/-1;">
+              <label>Описание / технологическая карта</label>
+              <textarea id="f_desc" placeholder="Текст..." required></textarea>
+            </div>
+
+            <div class="field" style="grid-column:1/-1;">
+  <label>Фото</label>
+  <input type="file" id="f_photo" accept="image/*" />
+  <small style="opacity:.6;">
+    Если фото не выбрано — будет использована заглушка.
+  </small>
+</div>
+          </div>
+        </form>
       </div>
-
-      <div class="modalActions">
-        <button class="btn" id="cancelBtn" type="button">Отмена</button>
-        <button class="btn primary" id="saveBtn" type="button">Сохранить</button>
+      <div class="modalFoot">
+        <button class="smallBtn" id="cancelBtn" type="button">Отмена</button>
+        <button class="smallBtn primary" id="saveBtn" type="button">Сохранить</button>
       </div>
     </div>
   </div>
 
-  <button class="toTop" id="toTopBtn" type="button" title="Наверх">
-    <img src="assets/icons/up.svg" alt="up" />
-  </button>
+  <!-- LOGIN MODAL -->
+<div class="modalWrap" id="loginWrap" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modalHead">
+      <h3>Вход в панель администратора</h3>
+    </div>
+
+    <div class="modalBody">
+      <div class="formGrid">
+        <div class="field" style="grid-column:1/-1;">
+          <label>Пароль</label>
+          <input id="loginPass" type="password" placeholder="Введите пароль…" />
+        </div>
+        <div id="loginError" style="grid-column:1/-1;opacity:.85;display:none;color:#ff7b7b;">
+          Неверный пароль
+        </div>
+      </div>
+    </div>
+
+    <div class="modalFoot">
+      <button class="smallBtn" id="loginCancel" type="button">Назад</button>
+      <button class="smallBtn primary" id="loginOk" type="button">Войти</button>
+    </div>
+  </div>
+</div>
+
+<!-- GITHUB TOKEN MODAL -->
+<div class="modalWrap" id="tokenWrap" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modalHead">
+      <h3>Ключ сохранения</h3>
+      <button class="iconBtn" id="tokenClose" type="button" title="Закрыть">✕</button>
+    </div>
+
+    <div class="modalBody">
+      <div class="formGrid" style="grid-template-columns: 1fr;">
+        <div class="field" style="grid-column:1/-1;">
+          <!--<label>GitHub Token (PAT)</label>-->
+          <input id="tokenInput" type="password" placeholder="вставьте ключ сохранения..." autocomplete="off" />
+          <small class="hintText">
+            Ключ нужен для сохранения измениний на сервер.
+          </small>
+        </div>
+
+        <div class="tokenRow" style="grid-column:1/-1;">
+          <label class="checkLine">
+            <input id="tokenRemember" type="checkbox" />
+            <span>Запомнить ключ на этом устройстве</span>
+          </label>
+
+          <button class="smallBtn" id="tokenCheckBtn" type="button">
+            Проверить
+          </button>
+        </div>
+
+        <div id="tokenStatus" class="tokenStatus" style="grid-column:1/-1;"></div>
+      </div>
+    </div>
+
+    <div class="modalFoot">
+      <button class="smallBtn" id="tokenCancel" type="button">Отмена</button>
+      <button class="smallBtn primary" id="tokenSaveBtn" type="button">Сохранить</button>
+    </div>
+  </div>
+</div>
+  
+<button class="toTopBtn" id="toTopBtn" type="button" title="Наверх">
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+    <path d="M12 5l-6 6M12 5l6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M12 5v14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+  </svg>
+</button>
 
   <script type="module" src="js/admin.js"></script>
 </body>
