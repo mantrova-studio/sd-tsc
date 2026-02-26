@@ -161,45 +161,6 @@
   </svg>
 </button>
 
-<!-- ===== Toast (как в копилках) ===== -->
-<div class="toast" id="toast" aria-live="polite"></div>
-
-<!-- ===== GitHub Token modal (как в копилках) ===== -->
-<div class="tokenWrap" id="tokenWrap" aria-hidden="true">
-  <div class="tokenModal" role="dialog" aria-modal="true">
-    <div class="tokenHead">
-      <div>
-        <div class="tokenTitle">Ключ сохранения</div>
-        <div class="tokenSub">Нужен для сохранения изменений</div>
-      </div>
-
-      <button class="iconBtn" id="tokenClose" type="button" title="Закрыть">✕</button>
-    </div>
-
-    <div class="tokenBody">
-      <label class="fieldLabel" for="tokenInput"></label>
-      <input id="tokenInput" class="input" type="password"
-             placeholder="введите ключ..." autocomplete="off" />
-
-      <label class="checkRow">
-        <input id="tokenRemember" type="checkbox" />
-        <span>Запомнить ключ</span>
-      </label>
-
-      <div class="tokenErr" id="tokenError" style="display:none;"></div>
-
-      <div class="tokenActions">
-        <!--<button class="btn" id="tokenCancel" type="button">Отмена</button>-->
-        <button class="btn primary" id="tokenOk" type="button">Сохранить</button>
-      </div>
-
-      <!--<div class="tiny muted" style="margin-top:10px;">
-        * Токен сохранится только в твоём браузере (если включишь “Запомнить”).
-      </div>-->
-    </div>
-  </div>
-</div>
-
   <script type="module" src="js/admin.js"></script>
 </body>
 </html>
