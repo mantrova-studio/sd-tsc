@@ -253,7 +253,7 @@
     map = new ymaps.Map("map", {
       center: [51.7682, 55.0968],
       zoom: 11,
-      controls: ["zoomControl"],
+      controls: ["zoomControl", "searchControl"],
     });
 
     initSearch();
