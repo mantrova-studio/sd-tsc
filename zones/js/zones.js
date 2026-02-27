@@ -4,8 +4,8 @@
 
   const GEOJSON_URL =
     mode === "night"
-      ? "/zones/data/zones/zones_night.geojson"
-      : "/zones/data/zones/zones_day.geojson";
+      ? "data/zones/zones_night.geojson"
+      : "data/zones/zones_day.geojson";
 
   // Центр по умолчанию (Оренбург)
   const DEFAULT_CENTER = [51.7682, 55.0968]; // [lat, lon]
