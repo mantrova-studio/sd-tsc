@@ -262,10 +262,21 @@
     box.style.display = items.length ? "block" : "none";
   }
 
-  async function nominatimSearch(query) {
-  // Прямоугольник вокруг Оренбурга + район (lon1,lat1,lon2,lat2)
-  // запад/юг/восток/север — с запасом
-  const viewbox = [54.85, 51.65, 55.35, 52.05].join(",");
+  const VIEWBOX = {
+  west: 54.85,
+  south: 51.65,
+  east: 55.35,
+  north: 52.05
+};
+
+async function nominatimSearch(query) {
+
+  const viewboxString = [
+    VIEWBOX.west,
+    VIEWBOX.south,
+    VIEWBOX.east,
+    VIEWBOX.north
+  ].join(",");
 
   const url =
     "https://nominatim.openstreetmap.org/search" +
@@ -273,8 +284,8 @@
     "&addressdetails=1" +
     "&limit=10" +
     "&countrycodes=ru" +
-    "&bounded=1" +
-    "&viewbox=" + encodeURIComponent(viewbox) +
+    "&bounded=1" + // строго внутри
+    "&viewbox=" + encodeURIComponent(viewboxString) +
     "&q=" + encodeURIComponent(query);
 
   const res = await fetch(url, {
@@ -282,8 +293,22 @@
   });
 
   if (!res.ok) throw new Error("OSM search failed: " + res.status);
-  return await res.json();
-  }
+
+  const data = await res.json();
+
+  // 🔥 Вторая защита — вручную фильтруем координаты
+  return (data || []).filter(d => {
+    const lat = Number(d.lat);
+    const lon = Number(d.lon);
+
+    return (
+      lon >= VIEWBOX.west &&
+      lon <= VIEWBOX.east &&
+      lat >= VIEWBOX.south &&
+      lat <= VIEWBOX.north
+    );
+  });
+}
 
   function handlePoint(lat, lon) {
     setPlacemark(lat, lon);
