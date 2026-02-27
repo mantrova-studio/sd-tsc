@@ -827,3 +827,11 @@ input[type="search"]::-webkit-search-cancel-button{
 input[type="search"]::-webkit-search-decoration{
   -webkit-appearance: none;
 }
+
+/* Yandex Suggest: всегда поверх карты */
+.ymaps-2-1-79-suggest,
+.ymaps-2-1-79-suggest-view,
+.ymaps-2-1-79-suggest-item,
+.ymaps-2-1-79-suggest-popup {
+  z-index: 999999 !important;
+}
