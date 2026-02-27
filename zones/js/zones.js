@@ -180,21 +180,18 @@
 
  function initSearch() {
 
-  const searchControl = new ymaps.control.SearchControl({
-    options: {
-      provider: 'yandex#search',
-      noPlacemark: true,
-      results: 5
-    }
-  });
+  const suggestView = new ymaps.SuggestView('addrInput');
 
-  map.controls.add(searchControl);
+  suggestView.events.add('select', function (e) {
 
-  searchControl.events.add('resultselect', function () {
-    const index = searchControl.getSelectedIndex();
+    const value = e.get('item').value;
 
-    searchControl.getResult(index).then(function (res) {
-      const coords = res.geometry.getCoordinates();
+    ymaps.geocode(value, { results: 1 }).then(function (res) {
+
+      const obj = res.geoObjects.get(0);
+      if (!obj) return;
+
+      const coords = obj.geometry.getCoordinates();
       const [lat, lon] = coords;
 
       setPlacemark(lat, lon);
@@ -212,20 +209,15 @@
 
       resetHighlight();
       const id = getFeatureId(found.feature, found.index);
+
       for (const [k, poly] of polyById.entries()) {
         if (k === id || k.startsWith(id + "_")) {
           poly.options.set(polygonStyleActive());
         }
       }
-    });
-  });
 
-  addrInput.addEventListener("keydown", function (e) {
-    if (e.key !== "Enter") return;
-    e.preventDefault();
-    const q = addrInput.value.trim();
-    if (!q) return;
-    searchControl.search(q);
+    });
+
   });
 
 }
