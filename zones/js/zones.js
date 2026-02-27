@@ -2,7 +2,7 @@
   const qs = new URLSearchParams(location.search);
   const mode = qs.get("mode"); // "night" => ночь, иначе день
 
-  // ВАЖНО: относительный путь (работает и на Pages, и на домене)
+  // относительный путь (работает и на Pages, и на домене)
   const GEOJSON_URL =
     mode === "night"
       ? "data/zones/zones_night.geojson"
@@ -26,19 +26,10 @@
     else location.href = "index.html";
   });
 
-  clearAddr.style.display = "none";
-  clearAddr.addEventListener("click", () => {
-    addrInput.value = "";
-    clearAddr.style.display = "none";
-    hideInfo();
-    if (placemark) map.geoObjects.remove(placemark);
-    placemark = null;
-  });
-
   // ====== SAFETY: если DOM не тот, не падаем ======
   const mapEl = document.getElementById("map");
-  if (!mapEl || !addrInput) {
-    console.error("zones: не найден #map или #addrInput (проверь zones.html)");
+  if (!mapEl || !addrInput || !clearAddr || !zoneInfo) {
+    console.error("zones: не найден #map или элементы UI (проверь zones.html)");
     return;
   }
 
@@ -118,6 +109,7 @@
       const res = await fetch(GEOJSON_URL, { cache: "no-store" });
       if (!res.ok) {
         console.warn("zones: GeoJSON не найден:", GEOJSON_URL, res.status);
+        showInfo(`<b>Не удалось загрузить зоны</b><div class="muted">${GEOJSON_URL}</div>`);
         return;
       }
       zonesGeo = await res.json();
@@ -128,6 +120,7 @@
 
       if (!polys.length) {
         console.warn("zones: в GeoJSON нет полигонов");
+        showInfo(`<b>В файле зон нет полигонов</b>`);
         return;
       }
 
@@ -141,9 +134,7 @@
         if (g.type === "Polygon") {
           contours = g.coordinates.map((ring) => ring.map(([lon, lat]) => [lat, lon]));
         } else if (g.type === "MultiPolygon") {
-          // берём все полигоны: каждый полигон — массив колец
-          // ymaps.Polygon принимает "контуры" как массив колец,
-          // поэтому MultiPolygon рисуем как несколько Polygon
+          // MultiPolygon рисуем как несколько Polygon
           g.coordinates.forEach((polyCoords, mIdx) => {
             const mpId = `${id}_m${mIdx}`;
             const rings = polyCoords.map((ring) => ring.map(([lon, lat]) => [lat, lon]));
@@ -175,52 +166,237 @@
       if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 20 });
     } catch (e) {
       console.error("zones: ошибка загрузки GeoJSON", e);
+      showInfo(`<b>Ошибка загрузки зон</b>`);
     }
   }
 
- function initSearch() {
+  // =========================================================
+  // ПОИСК: бесплатный и стабильный (OSM Nominatim)
+  // Карта остаётся Яндекс, но адреса ищем через OpenStreetMap.
+  // =========================================================
+  let suggestBox = null;
 
-  const suggestView = new ymaps.SuggestView('addrInput');
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
 
-  suggestView.events.add('select', function (e) {
+  function ensureSuggestBox() {
+    if (suggestBox) return suggestBox;
 
-    const value = e.get('item').value;
+    suggestBox = document.createElement("div");
+    suggestBox.style.position = "absolute";
+    suggestBox.style.zIndex = "9999";
+    suggestBox.style.background = "rgba(15,18,25,0.92)";
+    suggestBox.style.border = "1px solid rgba(255,255,255,0.08)";
+    suggestBox.style.borderRadius = "12px";
+    suggestBox.style.backdropFilter = "blur(10px)";
+    suggestBox.style.padding = "6px";
+    suggestBox.style.display = "none";
+    suggestBox.style.maxHeight = "260px";
+    suggestBox.style.overflow = "auto";
+    suggestBox.style.boxShadow = "0 10px 30px rgba(0,0,0,0.35)";
 
-    ymaps.geocode(value, { results: 1 }).then(function (res) {
+    document.body.appendChild(suggestBox);
+    return suggestBox;
+  }
 
-      const obj = res.geoObjects.get(0);
-      if (!obj) return;
+  function positionSuggestBox() {
+    const box = ensureSuggestBox();
+    const r = addrInput.getBoundingClientRect();
+    box.style.left = Math.round(r.left + window.scrollX) + "px";
+    box.style.top = Math.round(r.bottom + window.scrollY + 8) + "px";
+    box.style.width = Math.round(r.width) + "px";
+  }
 
-      const coords = obj.geometry.getCoordinates();
-      const [lat, lon] = coords;
+  function hideSuggestBox() {
+    if (!suggestBox) return;
+    suggestBox.style.display = "none";
+    suggestBox.innerHTML = "";
+  }
 
-      setPlacemark(lat, lon);
+  function renderSuggest(items) {
+    const box = ensureSuggestBox();
+    positionSuggestBox();
+    box.innerHTML = "";
 
-      const found = findZoneForPoint(lat, lon);
+    items.forEach((it) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.style.width = "100%";
+      row.style.textAlign = "left";
+      row.style.border = "0";
+      row.style.cursor = "pointer";
+      row.style.background = "transparent";
+      row.style.color = "rgba(255,255,255,0.92)";
+      row.style.padding = "10px 10px";
+      row.style.borderRadius = "10px";
+      row.style.fontSize = "14px";
+      row.style.lineHeight = "1.35";
 
-      if (!found) {
-        showInfo(`<b>Адрес вне зон доставки</b>`);
-        resetHighlight();
+      row.addEventListener("mouseenter", () => {
+        row.style.background = "rgba(255,255,255,0.06)";
+      });
+      row.addEventListener("mouseleave", () => {
+        row.style.background = "transparent";
+      });
+
+      row.innerHTML = `
+        <div style="font-weight:600;margin-bottom:2px;">${escapeHtml(it.title)}</div>
+        <div style="opacity:.75;font-size:12px;">${escapeHtml(it.sub)}</div>
+      `;
+
+      row.addEventListener("click", () => {
+        addrInput.value = it.label;
+        hideSuggestBox();
+        handlePoint(it.lat, it.lon);
+      });
+
+      box.appendChild(row);
+    });
+
+    box.style.display = items.length ? "block" : "none";
+  }
+
+  async function nominatimSearch(query) {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=7&countrycodes=ru&q=" +
+      encodeURIComponent("Оренбург " + query);
+
+    const res = await fetch(url, {
+      headers: {
+        // Nominatim просит указывать User-Agent/Referer, но в браузере нельзя выставить UA.
+        // На практике обычно достаточно этого:
+        "Accept-Language": "ru",
+      },
+    });
+
+    if (!res.ok) throw new Error("OSM search failed: " + res.status);
+    return await res.json();
+  }
+
+  function handlePoint(lat, lon) {
+    setPlacemark(lat, lon);
+
+    const found = findZoneForPoint(lat, lon);
+    if (!found) {
+      showInfo(`<div><b>Адрес вне зон доставки</b></div>`);
+      resetHighlight();
+      return;
+    }
+
+    showZone(found.feature.properties || {});
+    resetHighlight();
+
+    const id = getFeatureId(found.feature, found.index);
+    for (const [k, poly] of polyById.entries()) {
+      if (k === id || k.startsWith(id + "_")) poly.options.set(polygonStyleActive());
+    }
+  }
+
+  function initSearch() {
+    clearAddr.style.display = "none";
+
+    // очистка
+    clearAddr.addEventListener("click", () => {
+      addrInput.value = "";
+      clearAddr.style.display = "none";
+      hideInfo();
+      hideSuggestBox();
+      resetHighlight();
+      if (placemark) map.geoObjects.remove(placemark);
+      placemark = null;
+    });
+
+    // закрывать подсказки при клике вне
+    document.addEventListener("click", (e) => {
+      if (e.target === addrInput) return;
+      if (suggestBox && suggestBox.contains(e.target)) return;
+      hideSuggestBox();
+    });
+
+    window.addEventListener("resize", () => {
+      if (suggestBox && suggestBox.style.display === "block") positionSuggestBox();
+    });
+
+    // debounce
+    let t = null;
+    let lastQ = "";
+    let reqId = 0;
+
+    addrInput.addEventListener("input", () => {
+      const q = addrInput.value.trim();
+      clearAddr.style.display = q ? "block" : "none";
+      hideInfo();
+      resetHighlight();
+
+      if (!q) {
+        hideSuggestBox();
         return;
       }
 
-      const props = found.feature.properties || {};
-      showZone(props);
+      if (t) clearTimeout(t);
+      t = setTimeout(async () => {
+        const my = ++reqId;
+        lastQ = q;
 
-      resetHighlight();
-      const id = getFeatureId(found.feature, found.index);
+        try {
+          const data = await nominatimSearch(q);
+          if (my !== reqId || addrInput.value.trim() !== lastQ) return;
 
-      for (const [k, poly] of polyById.entries()) {
-        if (k === id || k.startsWith(id + "_")) {
-          poly.options.set(polygonStyleActive());
+          const items = (data || []).map((d) => {
+            const lat = Number(d.lat);
+            const lon = Number(d.lon);
+
+            const road = d.address?.road || d.address?.pedestrian || d.address?.footway || "";
+            const house = d.address?.house_number || "";
+            const title = (road ? road : d.display_name.split(",")[0]) + (house ? " " + house : "");
+            const sub = d.display_name;
+
+            return {
+              label: title || d.display_name,
+              title: title || d.display_name,
+              sub,
+              lat,
+              lon,
+            };
+          });
+
+          renderSuggest(items);
+        } catch (e) {
+          console.warn("OSM search error", e);
+          hideSuggestBox();
         }
-      }
-
+      }, 250);
     });
 
-  });
+    // Enter = берём первый вариант из списка (если есть)
+    addrInput.addEventListener("keydown", async (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
 
-}
+      const q = addrInput.value.trim();
+      if (!q) return;
+
+      try {
+        const data = await nominatimSearch(q);
+        const first = data?.[0];
+        if (!first) {
+          showInfo(`<b>Адрес не найден</b>`);
+          return;
+        }
+        handlePoint(Number(first.lat), Number(first.lon));
+        hideSuggestBox();
+      } catch (err) {
+        console.error(err);
+        showInfo(`<b>Ошибка поиска</b><div class="muted">Попробуй другой адрес.</div>`);
+      }
+    });
+  }
 
   ymaps.ready(async () => {
     map = new ymaps.Map("map", {
