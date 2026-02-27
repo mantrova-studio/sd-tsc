@@ -263,20 +263,26 @@
   }
 
   async function nominatimSearch(query) {
-    const url =
-      "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=7&countrycodes=ru&q=" +
-      encodeURIComponent("Оренбург " + query);
+  // Прямоугольник вокруг Оренбурга + район (lon1,lat1,lon2,lat2)
+  // запад/юг/восток/север — с запасом
+  const viewbox = [54.60, 51.40, 55.60, 52.20].join(",");
 
-    const res = await fetch(url, {
-      headers: {
-        // Nominatim просит указывать User-Agent/Referer, но в браузере нельзя выставить UA.
-        // На практике обычно достаточно этого:
-        "Accept-Language": "ru",
-      },
-    });
+  const url =
+    "https://nominatim.openstreetmap.org/search" +
+    "?format=jsonv2" +
+    "&addressdetails=1" +
+    "&limit=10" +
+    "&countrycodes=ru" +
+    "&bounded=1" +
+    "&viewbox=" + encodeURIComponent(viewbox) +
+    "&q=" + encodeURIComponent(query);
 
-    if (!res.ok) throw new Error("OSM search failed: " + res.status);
-    return await res.json();
+  const res = await fetch(url, {
+    headers: { "Accept-Language": "ru" },
+  });
+
+  if (!res.ok) throw new Error("OSM search failed: " + res.status);
+  return await res.json();
   }
 
   function handlePoint(lat, lon) {
