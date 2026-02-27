@@ -265,7 +265,7 @@
   async function nominatimSearch(query) {
   // Прямоугольник вокруг Оренбурга + район (lon1,lat1,lon2,lat2)
   // запад/юг/восток/север — с запасом
-  const viewbox = [34.60, 31.40, 75.60, 72.20].join(",");
+  const viewbox = [54.85, 51.65, 55.35, 52.05].join(",");
 
   const url =
     "https://nominatim.openstreetmap.org/search" +
