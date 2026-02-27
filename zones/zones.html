@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Зоны доставки</title>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+  <!-- Yandex Maps API -->
   <link rel="stylesheet" href="/css/styles.css" />
 </head>
 
@@ -43,9 +41,15 @@
     <div id="map" class="zoneMap" style="height:70vh;max-height:680px;"></div>
   </div>
 
-  <!-- Leaflet + Turf -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <!-- Turf (для проверки точки в полигоне) -->
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+  <!--
+    ВАЖНО:
+    1) Получи API-ключ Яндекс.Карт: https://developer.tech.yandex.ru/
+    2) Вставь его в параметр apikey ниже.
+  -->
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=62bb0bf1-3235-41f0-b3de-b09cfed11b52&lang=ru_RU"></script>
 
   <!-- ВАЖНО: абсолютный путь -->
   <script src="/zones/js/zones.js"></script>
