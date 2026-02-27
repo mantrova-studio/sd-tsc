@@ -178,61 +178,57 @@
     }
   }
 
-  function initSearch() {
-    // Подсказки
-    try {
-      new ymaps.SuggestView("addrInput", { results: 7 });
-    } catch (e) {
-      console.warn("SuggestView не включился:", e);
+ function initSearch() {
+
+  const searchControl = new ymaps.control.SearchControl({
+    options: {
+      provider: 'yandex#search',
+      noPlacemark: true,
+      results: 5
     }
+  });
 
-    addrInput.addEventListener("input", () => {
-      clearAddr.style.display = addrInput.value.trim() ? "block" : "none";
-    });
+  map.controls.add(searchControl);
 
-    addrInput.addEventListener("keydown", async (e) => {
-      if (e.key !== "Enter") return;
-      e.preventDefault();
+  searchControl.events.add('resultselect', function () {
+    const index = searchControl.getSelectedIndex();
 
-      const q = addrInput.value.trim();
-      if (!q) return;
+    searchControl.getResult(index).then(function (res) {
+      const coords = res.geometry.getCoordinates();
+      const [lat, lon] = coords;
 
-      try {
-        const geocodeRes = await ymaps.geocode(q, { results: 1 });
-        const obj = geocodeRes.geoObjects.get(0);
-        if (!obj) {
-          showInfo(`<b>Адрес не найден</b>`);
-          return;
-        }
+      setPlacemark(lat, lon);
 
-        const coords = obj.geometry.getCoordinates(); // [lat, lon]
-        const [lat, lon] = coords;
+      const found = findZoneForPoint(lat, lon);
 
-        setPlacemark(lat, lon);
-
-        const found = findZoneForPoint(lat, lon);
-        if (!found) {
-          showInfo(`<div><b>Адрес вне зон доставки</b></div><div class="muted">Проверь адрес или добавь зону.</div>`);
-          resetHighlight();
-          return;
-        }
-
-        const props = found.feature.properties || {};
-        showZone(props);
-
-        // подсветка: просто подсветим все (или ближайший, если хочешь — усложним позже)
+      if (!found) {
+        showInfo(`<b>Адрес вне зон доставки</b>`);
         resetHighlight();
-        // пытаемся подсветить первый polygon по id
-        const id = getFeatureId(found.feature, found.index);
-        for (const [k, poly] of polyById.entries()) {
-          if (k === id || k.startsWith(id + "_")) poly.options.set(polygonStyleActive());
+        return;
+      }
+
+      const props = found.feature.properties || {};
+      showZone(props);
+
+      resetHighlight();
+      const id = getFeatureId(found.feature, found.index);
+      for (const [k, poly] of polyById.entries()) {
+        if (k === id || k.startsWith(id + "_")) {
+          poly.options.set(polygonStyleActive());
         }
-      } catch (err) {
-        console.error(err);
-        showInfo(`<b>Ошибка поиска</b><div class="muted">Проверь ключ API и ограничения.</div>`);
       }
     });
-  }
+  });
+
+  addrInput.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const q = addrInput.value.trim();
+    if (!q) return;
+    searchControl.search(q);
+  });
+
+}
 
   ymaps.ready(async () => {
     map = new ymaps.Map("map", {
