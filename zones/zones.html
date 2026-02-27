@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Зоны доставки</title>
 
-  <!-- Yandex Maps API -->
-  <link rel="stylesheet" href="/css/styles.css" />
+  <!-- общий css (в папке zones надо подниматься на уровень выше) -->
+  <link rel="stylesheet" href="../css/styles.css" />
 </head>
 
 <body>
@@ -25,11 +25,9 @@
 
       <div class="controls" style="padding-top:0;">
         <div class="searchWrap" style="max-width:520px;">
-          <input id="addrInput"
-                 placeholder="Оренбург: введите адрес..."
-                 autocomplete="off" />
+          <!-- ВАЖНО: id="addrInput" -->
+          <input id="addrInput" placeholder="Оренбург: введите адрес..." autocomplete="off" />
           <button class="iconBtn" id="clearAddr" title="Очистить">✕</button>
-          <div class="addrSuggest" id="addrSuggest" style="display:none;"></div>
         </div>
       </div>
 
@@ -41,17 +39,13 @@
     <div id="map" class="zoneMap" style="height:70vh;max-height:680px;"></div>
   </div>
 
-  <!-- Turf (для проверки точки в полигоне) -->
+  <!-- Яндекс карты: package.full обязателен для SuggestView -->
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=ТВОЙ_КЛЮЧ&lang=ru_RU&load=package.full"></script>
+
+  <!-- Turf для проверки попадания точки -->
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
-  <!--
-    ВАЖНО:
-    1) Получи API-ключ Яндекс.Карт: https://developer.tech.yandex.ru/
-    2) Вставь его в параметр apikey ниже.
-  -->
-  <script src="https://api-maps.yandex.ru/2.1/?apikey=62bb0bf1-3235-41f0-b3de-b09cfed11b52&lang=ru_RU&load=package.full"></script>
-
-  <!-- ВАЖНО: абсолютный путь -->
+  <!-- относительный путь -->
   <script src="js/zones.js"></script>
 </body>
 </html>
