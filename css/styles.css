@@ -852,4 +852,4 @@ html, body { overflow: visible !important; }
 .topbar, .container, .controls, .searchWrap { overflow: visible !important; }
 
 /* Поле ввода — поверх стеклянных слоёв */
-#addrInput { position: relative; z-index: 10; }
+#addrInput { position: relative; z-index: 9999999999990; }
