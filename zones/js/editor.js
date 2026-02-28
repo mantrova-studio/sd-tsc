@@ -120,6 +120,11 @@
     night: "data/zones/zones_night.geojson",
   };
 
+  // жестко под твой репо
+  const GH_OWNER = "mantrova-studio";
+  const GH_REPO = "sd-tsc";
+  const GH_BRANCH = "main";
+
   const REPO_PATHS = {
     day: "zones/data/zones/zones_day.geojson",
     night: "zones/data/zones/zones_night.geojson",
@@ -139,6 +144,7 @@
   const exportBtn = document.getElementById("exportBtn");
   const resetLocalBtn = document.getElementById("resetLocalBtn");
   const ghBtn = document.getElementById("ghBtn");
+  const histBtn = document.getElementById("histBtn");
 
   const modeSel = document.getElementById("modeSel");
   const zoneName = document.getElementById("zoneName");
@@ -150,14 +156,18 @@
   const ghModal = document.getElementById("ghModal");
   const ghClose = document.getElementById("ghClose");
   const ghToken = document.getElementById("ghToken");
-  const ghOwner = document.getElementById("ghOwner");
-  const ghRepo = document.getElementById("ghRepo");
-  const ghBranch = document.getElementById("ghBranch");
-  const ghMsg = document.getElementById("ghMsg");
   const ghRemember = document.getElementById("ghRemember");
   const ghSaveBtn = document.getElementById("ghSaveBtn");
   const ghTestBtn = document.getElementById("ghTestBtn");
   const ghStatus = document.getElementById("ghStatus");
+
+  // History modal
+  const histModal = document.getElementById("histModal");
+  const histClose = document.getElementById("histClose");
+  const histRefresh = document.getElementById("histRefresh");
+  const histPill = document.getElementById("histPill");
+  const histStatus = document.getElementById("histStatus");
+  const histList = document.getElementById("histList");
 
   if (!backBtn || !drawBtn || !editBtn || !delBtn || !exportBtn || !modeSel) {
     showBlock("Не тот HTML", "editor.js подключён не на editor.html или элементы UI не найдены.");
@@ -354,18 +364,6 @@
     return { type: "FeatureCollection", features: polygons.map(polyToFeature) };
   }
 
-  function downloadJson(filename, obj) {
-    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/geo+json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-
   async function loadGeoJson(url) {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error("Не удалось загрузить: " + url);
@@ -475,28 +473,13 @@
     scheduleSaveDraft();
   }
 
-  function exportGeoJson() {
-    const mode = getMode();
-    const out = buildGeoJsonFromPolys();
-    const filename = mode === "night" ? "zones_night.geojson" : "zones_day.geojson";
-    downloadJson(filename, out);
-  }
-
   // ==========================
-  // GitHub Save
+  // GitHub helpers (token only)
   // ==========================
-  const GH_STORAGE = "sd_zones_github_settings";
+  const GH_STORAGE = "sd_zones_github_token";
 
-  function loadGhSettings() {
-    try {
-      const raw = localStorage.getItem(GH_STORAGE);
-      if (!raw) return null;
-      return JSON.parse(raw);
-    } catch { return null; }
-  }
-
-  function saveGhSettings(s) {
-    try { localStorage.setItem(GH_STORAGE, JSON.stringify(s)); } catch {}
+  function getSavedToken() {
+    return (localStorage.getItem(GH_STORAGE) || "").trim();
   }
 
   function setGhStatus(msg) {
@@ -504,21 +487,8 @@
   }
 
   function openGhModal() {
-    const defaults = loadGhSettings() || {
-      token: "",
-      owner: "mantrova-studio",
-      repo: "sd-tsc",
-      branch: "main",
-      msg: "",
-    };
-
-    ghToken.value = defaults.token || "";
-    ghOwner.value = defaults.owner || "mantrova-studio";
-    ghRepo.value = defaults.repo || "sd-tsc";
-    ghBranch.value = defaults.branch || "main";
-    ghMsg.value = defaults.msg || "";
+    ghToken.value = getSavedToken();
     ghRemember.checked = true;
-
     setGhStatus("");
     ghModal.style.display = "flex";
   }
@@ -528,11 +498,16 @@
   }
 
   function b64encodeUtf8(str) {
-    // UTF-8 safe base64
     const bytes = new TextEncoder().encode(str);
     let bin = "";
     bytes.forEach((b) => (bin += String.fromCharCode(b)));
     return btoa(bin);
+  }
+
+  function b64decodeUtf8(b64) {
+    const bin = atob(b64.replace(/\s/g, ""));
+    const bytes = new Uint8Array([...bin].map((c) => c.charCodeAt(0)));
+    return new TextDecoder().decode(bytes);
   }
 
   async function ghRequest(url, token, options = {}) {
@@ -556,38 +531,27 @@
     return json;
   }
 
-  async function ghTestAccess(settings) {
-    const { token, owner, repo } = settings;
-    const url = `https://api.github.com/repos/${owner}/${repo}`;
-    const data = await ghRequest(url, token, { method: "GET" });
-    return data;
+  async function ghTestAccess(token) {
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`;
+    return await ghRequest(url, token, { method: "GET" });
   }
 
-  async function ghUpsertFile(settings, path, contentText, commitMessage) {
-    const { token, owner, repo, branch } = settings;
-
-    // 1) get sha if exists
-    const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
+  async function ghUpsertFile(token, path, contentText, commitMessage) {
+    const getUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(GH_BRANCH)}`;
     let sha = null;
+
     try {
       const current = await ghRequest(getUrl, token, { method: "GET" });
       sha = current?.sha || null;
-    } catch (e) {
-      // if not found, sha stays null (will create)
-      if (!String(e.message || "").toLowerCase().includes("not found")) {
-        // sometimes GitHub message: "Not Found"
-        // if token has no access it'll be "Not Found" too; but then repo test should fail anyway
-        // still rethrow if we can't be sure
-        // We'll allow create attempt below when sha==null
-      }
+    } catch {
+      // Not Found — create
     }
 
-    // 2) PUT content
-    const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
+    const putUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(path)}`;
     const body = {
       message: commitMessage,
       content: b64encodeUtf8(contentText),
-      branch,
+      branch: GH_BRANCH,
       ...(sha ? { sha } : {}),
     };
 
@@ -605,40 +569,156 @@
   }
 
   async function saveToGitHub() {
+    const token = (ghToken.value || "").trim();
+    if (!token) { setGhStatus("Вставь токен."); return; }
+
     const mode = getMode();
+    const path = REPO_PATHS[mode];
     const geo = buildGeoJsonFromPolys();
     const text = JSON.stringify(geo, null, 2);
+    const commitMessage = `zones: update ${mode} (${nowStamp()})`;
 
-    const settings = {
-      token: (ghToken.value || "").trim(),
-      owner: (ghOwner.value || "").trim(),
-      repo: (ghRepo.value || "").trim(),
-      branch: (ghBranch.value || "main").trim(),
-      msg: (ghMsg.value || "").trim(),
-    };
+    setGhStatus(`Проверяю доступ…\n${GH_OWNER}/${GH_REPO}`);
+    await ghTestAccess(token);
 
-    if (!settings.token || !settings.owner || !settings.repo || !settings.branch) {
-      setGhStatus("Заполни token / owner / repo / branch.");
+    setGhStatus(`Коммичу файл…\n${path}`);
+    const result = await ghUpsertFile(token, path, text, commitMessage);
+
+    if (ghRemember.checked) localStorage.setItem(GH_STORAGE, token);
+
+    const commitUrl = result?.commit?.html_url || "";
+    setGhStatus(`Готово ✅\n${commitMessage}\n${commitUrl}`);
+  }
+
+  // ==========================
+  // History
+  // ==========================
+  function setHistStatus(msg) {
+    if (histStatus) histStatus.textContent = msg || "";
+  }
+
+  function openHistModal() {
+    const token = getSavedToken();
+    if (!token) {
+      alert("Сначала введи GitHub токен (кнопка GitHub). История берётся из GitHub.");
+      openGhModal();
+      return;
+    }
+    histModal.style.display = "flex";
+    refreshHistory().catch((e) => setHistStatus("Ошибка ❌\n" + (e.message || e)));
+  }
+
+  function closeHistModal() {
+    histModal.style.display = "none";
+  }
+
+  function fmtDate(iso) {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString("ru-RU", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+    } catch { return iso || ""; }
+  }
+
+  async function listCommitsForPath(token, path) {
+    const url =
+      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/commits` +
+      `?sha=${encodeURIComponent(GH_BRANCH)}` +
+      `&path=${encodeURIComponent(path)}` +
+      `&per_page=20`;
+    return await ghRequest(url, token, { method: "GET" });
+  }
+
+  async function getFileContentAtRef(token, path, refSha) {
+    // /contents supports ref=commit_sha
+    const url =
+      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${encodeURIComponent(path)}` +
+      `?ref=${encodeURIComponent(refSha)}`;
+    const data = await ghRequest(url, token, { method: "GET" });
+
+    if (!data?.content) throw new Error("Нет content в ответе GitHub");
+    const txt = b64decodeUtf8(data.content);
+    return txt;
+  }
+
+  function renderHistoryItems(items) {
+    histList.innerHTML = "";
+
+    if (!items?.length) {
+      histList.innerHTML = `<div style="opacity:.75;font-size:12px;line-height:1.4;">Коммитов для этого файла не найдено.</div>`;
       return;
     }
 
-    const commitMessage =
-      settings.msg
-        ? settings.msg
-        : `zones: update ${mode} (${nowStamp()})`;
+    items.forEach((c) => {
+      const sha = c?.sha || "";
+      const msg = c?.commit?.message || "(no message)";
+      const author = c?.commit?.author?.name || "—";
+      const date = c?.commit?.author?.date || "";
 
+      const el = document.createElement("div");
+      el.className = "histItem";
+
+      const meta = document.createElement("div");
+      meta.className = "histMeta";
+
+      const msgEl = document.createElement("div");
+      msgEl.className = "histMsg";
+      msgEl.textContent = msg.split("\n")[0];
+
+      const subEl = document.createElement("div");
+      subEl.className = "histSub";
+      subEl.textContent = `${fmtDate(date)} • ${author} • ${sha.slice(0, 7)}`;
+
+      meta.appendChild(msgEl);
+      meta.appendChild(subEl);
+
+      const btn = document.createElement("button");
+      btn.className = "histBtn";
+      btn.type = "button";
+      btn.textContent = "Загрузить";
+      btn.addEventListener("click", async () => {
+        const token = getSavedToken();
+        const mode = getMode();
+        const path = REPO_PATHS[mode];
+
+        const ok = confirm(
+          `Загрузить версию из коммита ${sha.slice(0,7)}?\n\nТекущие изменения останутся только в локальном черновике и могут быть перезаписаны.`
+        );
+        if (!ok) return;
+
+        try {
+          setHistStatus("Загружаю файл из GitHub…");
+          const txt = await getFileContentAtRef(token, path, sha);
+          const geo = JSON.parse(txt);
+
+          applyGeoJson(geo);
+          writeDraft(mode, geo); // сохраняем как локальный черновик
+          setHistStatus(`Готово ✅ Загружено: ${sha.slice(0,7)}\nТеперь можешь править и “Сохранить в GitHub”.`);
+        } catch (e) {
+          setHistStatus("Ошибка ❌\n" + (e.message || e));
+        }
+      });
+
+      el.appendChild(meta);
+      el.appendChild(btn);
+      histList.appendChild(el);
+    });
+  }
+
+  async function refreshHistory() {
+    const token = getSavedToken();
+    if (!token) {
+      setHistStatus("Нет токена. Открой GitHub и вставь токен.");
+      return;
+    }
+
+    const mode = getMode();
     const path = REPO_PATHS[mode];
+    histPill.textContent = `Файл: ${mode === "night" ? "night" : "day"} • ${path}`;
 
-    setGhStatus("Проверяю доступ…");
-    await ghTestAccess(settings);
-
-    setGhStatus(`Коммичу файл:\n${path}\n…`);
-    const result = await ghUpsertFile(settings, path, text, commitMessage);
-
-    if (ghRemember.checked) saveGhSettings(settings);
-
-    const commitUrl = result?.commit?.html_url || "";
-    setGhStatus(`Готово ✅\nКоммит: ${commitMessage}\n${commitUrl}`);
+    setHistStatus("Загружаю историю…");
+    const commits = await listCommitsForPath(token, path);
+    setHistStatus("");
+    renderHistoryItems(commits);
   }
 
   // ==========================
@@ -662,7 +742,6 @@
 
   editBtn.addEventListener("click", toggleEdit);
   delBtn.addEventListener("click", deleteSelected);
-  exportBtn.addEventListener("click", exportGeoJson);
   savePropsBtn.addEventListener("click", saveProps);
 
   if (resetLocalBtn) {
@@ -691,6 +770,11 @@
       syncEditBtnUi();
     }
     await loadCurrentModePreferDraft();
+
+    // если история открыта — обновим список под новый режим
+    if (histModal && histModal.style.display === "flex") {
+      refreshHistory().catch((e) => setHistStatus("Ошибка ❌\n" + (e.message || e)));
+    }
   });
 
   importFile.addEventListener("change", async (e) => {
@@ -715,23 +799,16 @@
   if (ghBtn && ghModal) {
     ghBtn.addEventListener("click", openGhModal);
     ghClose.addEventListener("click", closeGhModal);
-    ghModal.addEventListener("click", (e) => {
-      if (e.target === ghModal) closeGhModal();
-    });
+    ghModal.addEventListener("click", (e) => { if (e.target === ghModal) closeGhModal(); });
 
     ghTestBtn.addEventListener("click", async () => {
       try {
-        const settings = {
-          token: (ghToken.value || "").trim(),
-          owner: (ghOwner.value || "").trim(),
-          repo: (ghRepo.value || "").trim(),
-          branch: (ghBranch.value || "main").trim(),
-          msg: (ghMsg.value || "").trim(),
-        };
-        setGhStatus("Проверяю доступ…");
-        const repoInfo = await ghTestAccess(settings);
-        setGhStatus(`Ок ✅\n${repoInfo.full_name}\nDefault branch: ${repoInfo.default_branch}`);
-        if (ghRemember.checked) saveGhSettings(settings);
+        const token = (ghToken.value || "").trim();
+        if (!token) { setGhStatus("Вставь токен."); return; }
+        setGhStatus(`Проверяю доступ…\n${GH_OWNER}/${GH_REPO}`);
+        const repoInfo = await ghTestAccess(token);
+        setGhStatus(`Ок ✅\n${repoInfo.full_name}\nBranch: ${GH_BRANCH}`);
+        if (ghRemember.checked) localStorage.setItem(GH_STORAGE, token);
       } catch (e) {
         setGhStatus("Ошибка ❌\n" + (e.message || e));
       }
@@ -743,6 +820,16 @@
       } catch (e) {
         setGhStatus("Ошибка ❌\n" + (e.message || e));
       }
+    });
+  }
+
+  // History modal events
+  if (histBtn && histModal) {
+    histBtn.addEventListener("click", openHistModal);
+    histClose.addEventListener("click", closeHistModal);
+    histModal.addEventListener("click", (e) => { if (e.target === histModal) closeHistModal(); });
+    histRefresh.addEventListener("click", () => {
+      refreshHistory().catch((e) => setHistStatus("Ошибка ❌\n" + (e.message || e)));
     });
   }
 
