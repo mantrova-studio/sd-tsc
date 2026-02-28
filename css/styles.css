@@ -870,3 +870,26 @@ input[type="search"]::-webkit-search-decoration{
   width:22px;
   height:22px;
 }
+
+/* custom tooltip */
+.tscTip{
+  position: fixed;
+  z-index: 1000000;
+  pointer-events:none;
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(15,18,25,.78);
+  color: rgba(255,255,255,.92);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.2px;
+  transform: translateY(6px);
+  opacity: 0;
+  transition: opacity .12s ease, transform .12s ease;
+  max-width: 260px;
+  white-space: nowrap;
+}
+.tscTip.show{ opacity: 1; transform: translateY(0); }
