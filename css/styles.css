@@ -851,8 +851,8 @@ input[type="search"]::-webkit-search-decoration{
   align-items:center;
   justify-content:center;
   border-radius:14px;
-  border:1px solid rgba(255,255,255,.10);
-  background:rgba(255,255,255,.06);
+  border:1px solid rgba(42,50,70,.9);
+  background:rgba(21,25,36,.75);
   color:rgba(255,255,255,.92);
   cursor:pointer;
   transition:all .18s ease;
