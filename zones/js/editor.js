@@ -5,7 +5,7 @@
   const EDIT_PARAM = "edit";
   const PIN_PARAM = "pin";
   const STORAGE_AUTH = "sd_zones_editor_authed";
-  const EDITOR_PIN = "2468"; // поменяй
+  const EDITOR_PIN = "601/18"; // поменяй
 
   const qs = new URLSearchParams(location.search);
 
@@ -56,14 +56,102 @@
   }
 
   // ==========================
-  // ФАЙЛЫ + ЛОКАЛЬНЫЕ ДРАФТЫ
+  // TOOLTIP (кастомный)
+  // ==========================
+  const tip = document.createElement("div");
+  tip.className = "tscTip";
+  document.body.appendChild(tip);
+
+  let tipTimer = null;
+  let tipVisible = false;
+
+  function showTip(text, x, y) {
+    tip.textContent = text;
+    const pad = 14;
+    let left = x + pad;
+    let top = y + pad;
+
+    // clamp to viewport
+    const r = tip.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    if (left + r.width + 10 > vw) left = vw - r.width - 10;
+    if (top + r.height + 10 > vh) top = vh - r.height - 10;
+
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+    tip.classList.add("show");
+    tipVisible = true;
+  }
+
+  function hideTip() {
+    tip.classList.remove("show");
+    tipVisible = false;
+  }
+
+  document.addEventListener("pointerover", (e) => {
+    const el = e.target.closest?.("[data-tip]");
+    if (!el) return;
+
+    clearTimeout(tipTimer);
+    const text = el.getAttribute("data-tip");
+    if (!text) return;
+
+    tipTimer = setTimeout(() => {
+      showTip(text, e.clientX, e.clientY);
+    }, 120);
+  });
+
+  document.addEventListener("pointermove", (e) => {
+    if (!tipVisible) return;
+    const el = e.target.closest?.("[data-tip]");
+    if (!el) return;
+    showTip(el.getAttribute("data-tip") || "", e.clientX, e.clientY);
+  });
+
+  document.addEventListener("pointerout", (e) => {
+    const el = e.target.closest?.("[data-tip]");
+    if (!el) return;
+    clearTimeout(tipTimer);
+    hideTip();
+  });
+
+  // ==========================
+  // FILES + DRAFTS
   // ==========================
   const FILES = {
     day: "data/zones/zones_day.geojson",
     night: "data/zones/zones_night.geojson",
   };
 
-  const DRAFT_KEY = (mode) => `sd_zones_draft_${mode}`; // day/night
+  const DRAFT_KEY = (mode) => `sd_zones_draft_${mode}`;
+
+  // ==========================
+  // UI
+  // ==========================
+  const backBtn = document.getElementById("backBtn");
+  const drawBtn = document.getElementById("drawBtn");
+  const drawIcon = document.getElementById("drawIcon");
+  const editBtn = document.getElementById("editBtn");
+  const delBtn = document.getElementById("delBtn");
+  const exportBtn = document.getElementById("exportBtn");
+  const resetLocalBtn = document.getElementById("resetLocalBtn");
+
+  const modeSel = document.getElementById("modeSel");
+  const zoneName = document.getElementById("zoneName");
+  const zoneDesc = document.getElementById("zoneDesc");
+  const savePropsBtn = document.getElementById("savePropsBtn");
+  const importFile = document.getElementById("importFile");
+
+  if (!backBtn || !drawBtn || !editBtn || !delBtn || !exportBtn || !modeSel) {
+    showBlock(
+      "Не тот HTML",
+      "Похоже, editor.js подключён не на editor.html или элементы UI не найдены."
+    );
+    return;
+  }
+
+  backBtn.addEventListener("click", goToZones);
 
   function getMode() {
     return modeSel.value === "night" ? "night" : "day";
@@ -92,47 +180,20 @@
   }
 
   // ==========================
-  // UI
-  // ==========================
-  const backBtn = document.getElementById("backBtn");
-  const drawBtn = document.getElementById("drawBtn");
-  const stopBtn = document.getElementById("stopBtn");
-  const editBtn = document.getElementById("editBtn");
-  const delBtn = document.getElementById("delBtn");
-  const exportBtn = document.getElementById("exportBtn");
-  const resetLocalBtn = document.getElementById("resetLocalBtn");
-
-  const modeSel = document.getElementById("modeSel");
-  const zoneName = document.getElementById("zoneName");
-  const zoneDesc = document.getElementById("zoneDesc");
-  const savePropsBtn = document.getElementById("savePropsBtn");
-  const importFile = document.getElementById("importFile");
-
-  if (!backBtn || !drawBtn || !stopBtn || !editBtn || !delBtn || !exportBtn || !modeSel) {
-    showBlock(
-      "Не тот HTML",
-      "Похоже, editor.js подключён не на editor.html или элементы UI не найдены.\nОжидаемые id: backBtn, drawBtn, stopBtn, editBtn, delBtn, exportBtn, modeSel."
-    );
-    return;
-  }
-
-  backBtn.addEventListener("click", goToZones);
-
-  // ==========================
   // MAP / STATE
   // ==========================
   let map;
   let selected = null;
   const polygons = [];
+  let drawingPoly = null;
+  let isDrawing = false;
 
-  // автосохранение (debounce)
   let saveTimer = null;
   function scheduleSaveDraft() {
     if (!map) return;
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
-      const geo = buildGeoJsonFromPolys();
-      writeDraft(getMode(), geo);
+      writeDraft(getMode(), buildGeoJsonFromPolys());
     }, 250);
   }
 
@@ -155,20 +216,17 @@
   }
 
   function normalizeProps(props = {}) {
-    // важное: описание может быть в note
     const p = { ...props };
     if (!p.zone && (p.Name || p.name)) p.zone = p.Name || p.name;
     if (!p.description && p.note) p.description = p.note;
-    if (!p.note && p.description) p.note = p.description; // чтобы не терять исходный формат
+    if (!p.note && p.description) p.note = p.description;
     return p;
   }
 
   function selectPoly(poly) {
     if (selected && selected !== poly) {
       setSelectedStyle(selected, false);
-      try {
-        selected.editor && selected.editor.stopEditing();
-      } catch (e) {}
+      try { selected.editor && selected.editor.stopEditing(); } catch (e) {}
     }
 
     selected = poly;
@@ -182,22 +240,14 @@
     setSelectedStyle(selected, true);
 
     const props = normalizeProps(selected.properties.getAll() || {});
-    // FIX #1: подтягиваем описание (description || note)
     zoneName.value = props.zone || "";
     zoneDesc.value = props.description || props.note || "";
   }
 
   function attachPolyEvents(poly) {
     poly.events.add("click", () => selectPoly(poly));
-
-    // FIX #3: любые изменения геометрии/свойств -> драфт
-    try {
-      poly.geometry.events.add("change", scheduleSaveDraft);
-    } catch (e) {}
-
-    try {
-      poly.properties.events.add("change", scheduleSaveDraft);
-    } catch (e) {}
+    try { poly.geometry.events.add("change", scheduleSaveDraft); } catch (e) {}
+    try { poly.properties.events.add("change", scheduleSaveDraft); } catch (e) {}
   }
 
   function addPolygonFromLatLonRings(ringsLatLon, props = {}) {
@@ -211,9 +261,7 @@
 
   function clearAll() {
     polygons.forEach((p) => {
-      try {
-        p.editor && p.editor.stopEditing();
-      } catch (e) {}
+      try { p.editor && p.editor.stopEditing(); } catch (e) {}
       map.geoObjects.remove(p);
     });
     polygons.length = 0;
@@ -226,7 +274,7 @@
   }
 
   // ==========================
-  // GEOJSON CONVERT
+  // GEOJSON
   // ==========================
   function latLonToLonLatRing(ringLatLon) {
     return ringLatLon.map(([lat, lon]) => [lon, lat]);
@@ -238,16 +286,15 @@
   function polyToFeature(poly) {
     const coords = poly.geometry.getCoordinates();
     const ringsLonLat = coords.map((ring) => latLonToLonLatRing(ring));
-
     const props = normalizeProps(poly.properties.getAll() || {});
-    // сохраняем только нужные поля, но не теряем note/description
+    const desc = props.description || props.note || "";
     return {
       type: "Feature",
       properties: {
         id: props.id || props.__id || null,
         zone: props.zone || "",
-        description: props.description || props.note || "",
-        note: props.note || props.description || "",
+        description: desc,
+        note: desc,
       },
       geometry: { type: "Polygon", coordinates: ringsLonLat },
     };
@@ -261,9 +308,7 @@
   }
 
   function downloadJson(filename, obj) {
-    const blob = new Blob([JSON.stringify(obj, null, 2)], {
-      type: "application/geo+json;charset=utf-8",
-    });
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/geo+json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -295,7 +340,6 @@
         const ringsLatLon = (g.coordinates || []).map((ring) => lonLatToLatLonRing(ring));
         addPolygonFromLatLonRings(ringsLatLon, props);
       } else if (g.type === "MultiPolygon") {
-        // если когда-нибудь будет MultiPolygon — разнесём на несколько Polygon
         (g.coordinates || []).forEach((polyCoords, mIdx) => {
           const ringsLatLon = (polyCoords || []).map((ring) => lonLatToLatLonRing(ring));
           addPolygonFromLatLonRings(ringsLatLon, { ...props, id: `${props.id}_m${mIdx}` });
@@ -308,29 +352,30 @@
 
   async function loadCurrentModePreferDraft() {
     const mode = getMode();
-
     const draft = readDraft(mode);
     if (draft && draft.type === "FeatureCollection") {
       applyGeoJson(draft);
       return;
     }
-
-    const url = FILES[mode];
-    const geo = await loadGeoJson(url);
+    const geo = await loadGeoJson(FILES[mode]);
     applyGeoJson(geo);
   }
 
   // ==========================
   // DRAW / EDIT / DELETE
   // ==========================
-  let drawingPoly = null;
+  function setDrawIconPlus() {
+    drawIcon.innerHTML = `<path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round"/>`;
+  }
+
+  function setDrawIconCheck() {
+    drawIcon.innerHTML = `<path d="M6 12l4 4 8-8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
 
   function startDrawing() {
-    // если уже рисовали — завершить
+    // если был незакрытый draw — закрываем
     if (drawingPoly) {
-      try {
-        drawingPoly.editor.stopDrawing();
-      } catch (e) {}
+      try { drawingPoly.editor.stopDrawing(); } catch (e) {}
       drawingPoly = null;
     }
 
@@ -341,14 +386,13 @@
       note: "",
     });
 
-    // FIX #2: создаём через общий хелпер (с click+autosave)
     drawingPoly = addPolygonFromLatLonRings([], props);
     selectPoly(drawingPoly);
 
     try {
       drawingPoly.editor.startDrawing();
     } catch (e) {
-      alert("Не удалось начать рисование. Проверь, что подключён API с load=package.full");
+      alert("Не удалось начать рисование. Проверь load=package.full");
     }
 
     scheduleSaveDraft();
@@ -356,18 +400,14 @@
 
   function stopDrawing() {
     if (!drawingPoly) return;
-    try {
-      drawingPoly.editor.stopDrawing();
-    } catch (e) {}
+    try { drawingPoly.editor.stopDrawing(); } catch (e) {}
     drawingPoly = null;
-
     fitToAll();
     scheduleSaveDraft();
   }
 
   function toggleEdit() {
     if (!selected) return alert("Выбери полигон (клик по зоне).");
-
     try {
       const isEditing = selected.editor && selected.editor.state.get("editing");
       if (isEditing) selected.editor.stopEditing();
@@ -382,15 +422,13 @@
     if (!selected) return;
     if (!confirm("Удалить выбранный полигон?")) return;
 
-    try {
-      selected.editor && selected.editor.stopEditing();
-    } catch (e) {}
-
+    try { selected.editor && selected.editor.stopEditing(); } catch (e) {}
     map.geoObjects.remove(selected);
+
     const i = polygons.indexOf(selected);
     if (i >= 0) polygons.splice(i, 1);
-    selectPoly(null);
 
+    selectPoly(null);
     scheduleSaveDraft();
   }
 
@@ -399,9 +437,8 @@
 
     const z = zoneName.value.trim();
     const d = zoneDesc.value.trim();
-
-    // сохраняем и description, и note (чтобы не было рассинхрона)
     const current = normalizeProps(selected.properties.getAll() || {});
+
     selected.properties.set({
       ...current,
       zone: z,
@@ -420,14 +457,28 @@
   }
 
   // ==========================
-  // UI EVENTS
+  // EVENTS
   // ==========================
-  drawBtn.addEventListener("click", startDrawing);
-  stopBtn.addEventListener("click", stopDrawing);
+  drawBtn.addEventListener("click", () => {
+    if (!isDrawing) {
+      startDrawing();
+      isDrawing = true;
+      drawBtn.classList.add("active");
+      setDrawIconCheck();
+      drawBtn.setAttribute("data-tip", "Завершить рисование");
+    } else {
+      stopDrawing();
+      isDrawing = false;
+      drawBtn.classList.remove("active");
+      setDrawIconPlus();
+      drawBtn.setAttribute("data-tip", "Новый полигон");
+    }
+  });
+
   editBtn.addEventListener("click", toggleEdit);
   delBtn.addEventListener("click", deleteSelected);
-  savePropsBtn.addEventListener("click", saveProps);
   exportBtn.addEventListener("click", exportGeoJson);
+  savePropsBtn.addEventListener("click", saveProps);
 
   if (resetLocalBtn) {
     resetLocalBtn.addEventListener("click", async () => {
@@ -438,28 +489,26 @@
       if (!ok) return;
 
       clearDraft(mode);
-      try {
-        await loadCurrentModePreferDraft();
-        alert("Локальный черновик удалён. Загружен исходный GeoJSON.");
-      } catch (e) {
-        alert("Ошибка загрузки: " + e.message);
-      }
+      await loadCurrentModePreferDraft();
+      alert("Локальный черновик удалён. Загружен исходный GeoJSON.");
     });
   }
 
   modeSel.addEventListener("change", async () => {
-    // мы храним автодрафт, поэтому просто грузим другой режим (драфт если есть)
-    try {
-      await loadCurrentModePreferDraft();
-    } catch (e) {
-      alert(e.message);
+    // если рисовали — закрываем режим рисования
+    if (isDrawing) {
+      isDrawing = false;
+      drawBtn.classList.remove("active");
+      setDrawIconPlus();
+      drawBtn.setAttribute("data-tip", "Новый полигон");
+      stopDrawing();
     }
+    await loadCurrentModePreferDraft();
   });
 
   importFile.addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       const geo = JSON.parse(await file.text());
       applyGeoJson(geo);
@@ -472,12 +521,11 @@
     }
   });
 
-  // удобство: изменение текста сразу в драфт (чтобы не потерять при F5)
-  zoneName.addEventListener("input", () => scheduleSaveDraft());
-  zoneDesc.addEventListener("input", () => scheduleSaveDraft());
+  zoneName.addEventListener("input", scheduleSaveDraft);
+  zoneDesc.addEventListener("input", scheduleSaveDraft);
 
   // ==========================
-  // INIT MAP
+  // INIT
   // ==========================
   ymaps.ready(async () => {
     map = new ymaps.Map("map", {
@@ -486,16 +534,6 @@
       controls: ["zoomControl"],
     });
 
-    map.events.add("click", (e) => {
-      // клик по пустому месту снимает выделение (но не мешает клику по полигону)
-      // ymaps сначала вызовет click полигона, потом карты, поэтому делаем микро-задержку
-      setTimeout(() => {
-        // если только что выбрали полигон — не сбрасываем
-        // (простая эвристика: если selected есть, не трогаем)
-      }, 0);
-    });
-
-    // по умолчанию день
     if (!modeSel.value) modeSel.value = "day";
 
     try {
