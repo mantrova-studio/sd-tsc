@@ -77,8 +77,8 @@
     }
 
     .edIconBtn{
-      width:48px;
-      height:48px;
+      width:44px;
+      height:44px;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -112,6 +112,21 @@
       background:rgba(255,80,80,.15);
       border-color:rgba(255,80,80,.35);
     }
+
+    /* success always green border */
+.edIconBtn.edSuccess{
+  border-color: rgba(80,200,120,.35);
+}
+
+.edIconBtn.edSuccess:hover{
+  background: rgba(80,200,120,.15);
+  border-color: rgba(80,200,120,.55);
+}
+
+.edIconBtn.edSuccess.active{
+  background: rgba(80,200,120,.20);
+  border-color: rgba(80,200,120,.65);
+}
 
     /* custom tooltip */
     .tscTip{
@@ -349,7 +364,7 @@
         </button>
 
         <!-- github save -->
-        <button class="edIconBtn" id="ghBtn" type="button" data-tip="Сохранить в GitHub (коммит)">
+        <button class="edIconBtn edSuccess" id="ghBtn" type="button" data-tip="Сохранить в GitHub (коммит)">
           <svg xmlns="http://www.w3.org/2000/svg" 
      width="24" height="24" 
      viewBox="0 0 24 24" 
