@@ -676,4 +676,102 @@ async function init(){
 
 }
 
+
 init();
+
+const bulkBtn = document.getElementById("bulkExcelBtn");
+const excelModal = document.getElementById("excelModal");
+const excelCloseBtn = document.getElementById("excelCloseBtn");
+
+if (bulkBtn) {
+  bulkBtn.addEventListener("click", () => {
+    excelModal.style.display = "block";
+  });
+}
+
+if (excelCloseBtn) {
+  excelCloseBtn.addEventListener("click", () => {
+    excelModal.style.display = "none";
+  });
+}
+
+const excelInput = document.getElementById("excelFileInput");
+const excelImportBtn = document.getElementById("excelImportBtn");
+const excelStats = document.getElementById("excelStats");
+
+let excelData = [];
+
+if (excelImportBtn) {
+  excelImportBtn.addEventListener("click", () => {
+    if (!excelInput.files.length) {
+      alert("Выберите файл Excel");
+      return;
+    }
+
+    const file = excelInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet);
+
+      importDishesFromExcel(json);
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function importDishesFromExcel(rows) {
+  if (!rows.length) {
+    alert("Файл пустой");
+    return;
+  }
+
+  let added = 0;
+  let skipped = 0;
+
+  rows.forEach(row => {
+    if (!row.delivery || !row.category || !row.name) {
+      skipped++;
+      return;
+    }
+
+    const exists = dishes.find(d =>
+      d.delivery === row.delivery &&
+      d.category === row.category &&
+      d.name === row.name
+    );
+
+    if (exists) {
+      skipped++;
+      return;
+    }
+
+    const newDish = {
+      id: row.id ? row.id : generateId(row.name),
+      delivery: row.delivery,
+      category: row.category,
+      name: row.name,
+      description: row.description || "",
+      photo: "assets/photos/placeholder.jpg"
+    };
+
+    dishes.push(newDish);
+    added++;
+  });
+
+  excelStats.innerHTML =
+    "Добавлено: " + added + "<br>Пропущено: " + skipped;
+
+  renderDishes(); // твоя функция перерисовки
+}
+
+function generateId(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-zа-я0-9]/gi, "-")
+    + "-" + Date.now();
+}
