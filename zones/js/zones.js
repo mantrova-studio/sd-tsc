@@ -189,7 +189,8 @@
   }
 
   // =========================================================
-  // ПОИСК: выпадающие подсказки (свои) на геокодере Яндекса
+  // ПОИСК: выпадающие подсказки (свои) через геокодер Яндекса
+  // Сначала Оренбург, ниже Оренбургский район
   // =========================================================
 
   let dd = null;
@@ -281,9 +282,51 @@
 
   function shortAddressLine(line) {
     if (!line) return "";
-    // часто приходит "Россия, Оренбург, улица ..., дом ..."
-    // оставим без "Россия,"
     return String(line).replace(/^Россия,\s*/i, "");
+  }
+
+  function geocodeList(query, limit = 7) {
+    return ymaps.geocode(query, { results: limit }).then((res) => {
+      const items = [];
+      res.geoObjects.each((obj) => {
+        const coords = obj.geometry?.getCoordinates?.();
+        if (!coords) return;
+        const [lat, lon] = coords;
+
+        const line = shortAddressLine(
+          (obj.getAddressLine && obj.getAddressLine()) ||
+            obj.properties?.get?.("text") ||
+            obj.properties?.get?.("name") ||
+            ""
+        );
+
+        const name = obj.properties?.get?.("name") || "";
+        const desc = obj.properties?.get?.("description") || "";
+
+        const title = shortAddressLine(name || line || "");
+        const sub = shortAddressLine(desc || line || "");
+
+        if (title) items.push({ title, sub, lat, lon });
+      });
+
+      // убираем дубли по title
+      const seen = new Set();
+      return items.filter((it) => {
+        const k = it.title.toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    });
+  }
+
+  function isInsideOrenburgCity(item) {
+    const t = (item.sub || item.title || "").toLowerCase();
+    const hasOrenburg = t.includes("оренбург");
+    const isVillage =
+      t.includes("посел") || t.includes("село") || t.includes("хутор") || t.includes("деревн");
+    const isDistrict = t.includes("оренбургский район");
+    return hasOrenburg && !isVillage && !isDistrict;
   }
 
   function initSearch() {
@@ -323,7 +366,6 @@
         hideDd();
         return;
       }
-
       if (q.length < 3) {
         hideDd();
         return;
@@ -333,54 +375,41 @@
       t = setTimeout(() => {
         const my = ++reqId;
 
-        const searchQuery = q + ", Оренбургский район";
+        const qCity = q + ", Оренбург";
+        const qDistrict = q + ", Оренбургский район";
 
-        ymaps.geocode(searchQuery, { results: 7 })
-          .then((res) => {
+        Promise.allSettled([geocodeList(qCity, 7), geocodeList(qDistrict, 7)])
+          .then((results) => {
             if (my !== reqId) return;
 
-            const items = [];
-            res.geoObjects.each((obj) => {
-              const coords = obj.geometry?.getCoordinates?.();
-              if (!coords) return;
+            const city = results[0].status === "fulfilled" ? results[0].value : [];
+            const district = results[1].status === "fulfilled" ? results[1].value : [];
 
-              const [lat, lon] = coords;
+            const cityFiltered = city.filter(isInsideOrenburgCity);
+            const finalCity = cityFiltered.length ? cityFiltered : city;
 
-              const line = shortAddressLine(
-                (obj.getAddressLine && obj.getAddressLine()) ||
-                obj.properties?.get?.("text") ||
-                obj.properties?.get?.("name") ||
-                ""
-              );
-
-              // name/description иногда дают красивое краткое представление
-              const name = obj.properties?.get?.("name") || "";
-              const desc = obj.properties?.get?.("description") || "";
-
-              const title = shortAddressLine(name || line || "");
-              const sub = shortAddressLine(desc || line || "");
-
-              if (title) items.push({ title, sub, lat, lon });
-            });
-
-            // убираем дубли
+            const merged = [];
             const seen = new Set();
-            const uniq = items.filter((it) => {
-              const k = it.title.toLowerCase();
-              if (seen.has(k)) return false;
-              seen.add(k);
-              return true;
-            });
 
-            renderDd(uniq);
+            function pushList(list) {
+              list.forEach((it) => {
+                const k = (it.title + "|" + it.sub).toLowerCase();
+                if (seen.has(k)) return;
+                seen.add(k);
+                merged.push(it);
+              });
+            }
+
+            pushList(finalCity);
+            pushList(district);
+
+            renderDd(merged.slice(0, 10));
           })
-          .catch(() => {
-            hideDd();
-          });
+          .catch(() => hideDd());
       }, 250);
     });
 
-    // Enter -> первый результат
+    // Enter: сначала Оренбург, потом район
     addrInput.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       e.preventDefault();
@@ -390,17 +419,32 @@
 
       hideDd();
 
-      const searchQuery = q + ", Оренбургский район";
+      const qCity = q + ", Оренбург";
+      const qDistrict = q + ", Оренбургский район";
 
-      ymaps.geocode(searchQuery, { results: 1 })
+      ymaps
+        .geocode(qCity, { results: 1 })
         .then((res) => {
           const obj = res.geoObjects.get(0);
-          if (!obj) {
-            showInfo(`<b>Адрес не найден</b>`);
-            return;
+          if (obj) {
+            const [lat, lon] = obj.geometry.getCoordinates();
+            applyPoint(lat, lon);
+            return true;
           }
-          const [lat, lon] = obj.geometry.getCoordinates();
-          applyPoint(lat, lon);
+          return false;
+        })
+        .then((ok) => {
+          if (ok) return;
+
+          return ymaps.geocode(qDistrict, { results: 1 }).then((res2) => {
+            const obj2 = res2.geoObjects.get(0);
+            if (!obj2) {
+              showInfo(`<b>Адрес не найден</b>`);
+              return;
+            }
+            const [lat, lon] = obj2.geometry.getCoordinates();
+            applyPoint(lat, lon);
+          });
         })
         .catch(() => {
           showInfo(`<b>Ошибка поиска</b>`);
