@@ -835,3 +835,21 @@ input[type="search"]::-webkit-search-decoration{
 .ymaps-2-1-79-suggest-popup {
   z-index: 999999 !important;
 }
+
+/* Яндекс подсказки — всегда поверх всего */
+.ymaps-2-1-79-suggest,
+.ymaps-2-1-79-suggest-view,
+.ymaps-2-1-79-suggest-item,
+.ymaps-2-1-79-suggest-popup,
+.ymaps-2-1-79-suggest-list {
+  z-index: 999999 !important;
+}
+
+/* Частая причина исчезновения подсказок — overflow/transform у родителей */
+html, body { overflow: visible !important; }
+
+/* Если у верхней панели/контейнера поиска стоит overflow:hidden — подсказки могут "резаться" */
+.topbar, .container, .controls, .searchWrap { overflow: visible !important; }
+
+/* Поле ввода — поверх стеклянных слоёв */
+#addrInput { position: relative; z-index: 10; }
