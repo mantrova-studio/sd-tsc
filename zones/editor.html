@@ -67,7 +67,24 @@
       .zoneMap{ height:60vh; }
     }
 
-    /* icon toolbar */
+    /* ======= кнопки в карточке (Сохранить/Импорт) ======= */
+    .edBtn{
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.92);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:13px;
+      transition:all .18s ease;
+      text-align:center;
+      user-select:none;
+    }
+    .edBtn:hover{ background:rgba(255,255,255,.10); }
+    .edBtn:active{ transform: translateY(1px); }
+
+    /* ======= icon toolbar ======= */
     .edBar{
       display:flex;
       gap:10px;
@@ -106,12 +123,16 @@
       border-color:rgba(80,200,120,.35);
     }
 
+    /* ВАЖНО: красная обводка всегда */
+    .edIconBtn.edDanger{
+      border-color: rgba(255,80,80,.28);
+    }
     .edIconBtn.edDanger:hover{
       background:rgba(255,80,80,.15);
-      border-color:rgba(255,80,80,.25);
+      border-color:rgba(255,80,80,.35);
     }
 
-    /* custom tooltip */
+    /* ======= custom tooltip ======= */
     .tscTip{
       position: fixed;
       z-index: 1000000;
@@ -156,16 +177,15 @@
       <!-- Икон-панель -->
       <div class="edBar">
         <!-- drawBtn: плюс/галочка -->
-        <button class="edIconBtn" id="drawBtn" type="button" data-tip="Новый полигон / Завершить">
+        <button class="edIconBtn" id="drawBtn" type="button" data-tip="Новый полигон">
           <svg id="drawIcon" viewBox="0 0 24 24" aria-hidden="true">
-            <!-- плюс -->
             <path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
 
-        <!-- edit vertices -->
+        <!-- edit vertices: треугольник/галочка -->
         <button class="edIconBtn" id="editBtn" type="button" data-tip="Редактировать вершины">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
+          <svg id="editIcon" viewBox="0 0 24 24" aria-hidden="true">
             <circle class="fill" cx="6" cy="18" r="2"></circle>
             <circle class="fill" cx="18" cy="18" r="2"></circle>
             <circle class="fill" cx="12" cy="6" r="2"></circle>
@@ -226,7 +246,7 @@
       <div class="edRow" style="margin-top:10px;">
         <button class="edBtn" id="savePropsBtn" type="button">💾 Сохранить</button>
 
-        <label class="edBtn" style="text-align:center;">
+        <label class="edBtn">
           ⤒ Импорт
           <input id="importFile" type="file" accept=".geojson,application/geo+json,application/json" style="display:none">
         </label>
@@ -237,7 +257,7 @@
         • Клик по зоне — выбрать<br/>
         • ➕ Новый полигон: ставь точки, двойной клик завершить<br/>
         • ✅ та же кнопка завершает рисование<br/>
-        • “Вершины” — двигай точки<br/>
+        • “Вершины” — включить/выключить режим вершин (✅)<br/>
         • Экспорт — скачай файл и замени в репо:<br/>
         <span style="opacity:.8">zones/data/zones/zones_day.geojson</span><br/>
         <span style="opacity:.8">zones/data/zones/zones_night.geojson</span>
