@@ -30,7 +30,9 @@ const saveGithubBtn = qs("#saveGithubBtn");
 const exportBtn = qs("#exportBtn"); // может быть закомментирована в HTML
 const resetBtn = qs("#resetBtn");   // может быть закомментирована в HTML
 const logoutBtn = qs("#logoutBtn");
-const deleteSelectedBtn = qs("#deleteSelectedBtn");// Нормализуем пути, чтобы работало и на /tsc/admin.html, и если сервер откроет как /tsc/admin
+const deleteSelectedBtn = qs("#deleteSelectedBtn");
+
+// Нормализуем пути, чтобы работало и на /tsc/admin.html, и если сервер откроет как /tsc/admin
 function resolveTscPath(p){
   if(!p) return p;
   const str = String(p);
@@ -186,7 +188,7 @@ function renderList(){
 
     row.innerHTML = `
       <div class="rowLeft">
-          <input type="checkbox" class="bulkCheck" data-id="${d.id}" />
+        <input type="checkbox" class="bulkCheck" data-id="${d.id}" />
         <img class="thumb" src="${resolveTscPath(d.photo)}" alt="" />
         <div class="rowText">
           <div class="rowMeta">
@@ -224,12 +226,6 @@ function persist(){
   setOverride(dishes);
   refreshCategoryDropdown();
   applyFilters();
-
-  // показывать/скрывать кнопку удаления выбранных
-  listEl.addEventListener("change", (e)=>{
-    const t = e.target;
-    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
-  });
 }
 
 function openTokenModal({ prefFill = true } = {}){
@@ -345,12 +341,6 @@ function setupDropdowns(){
     setText(deliveryValue, val);
     buildMenu(deliveryMenu, DELIVERY_LIST, currentDelivery);
     applyFilters();
-
-  // показывать/скрывать кнопку удаления выбранных
-  listEl.addEventListener("change", (e)=>{
-    const t = e.target;
-    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
-  });
   });
 
   const categoryMenu = categoryDrop.querySelector(".menu");
@@ -360,12 +350,6 @@ function setupDropdowns(){
     setText(categoryValue, val);
     buildMenu(categoryMenu, getCategories(), currentCategory);
     applyFilters();
-
-  // показывать/скрывать кнопку удаления выбранных
-  listEl.addEventListener("change", (e)=>{
-    const t = e.target;
-    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
-  });
   });
 
   const sortMenu = sortDrop.querySelector(".menu");
@@ -375,12 +359,6 @@ function setupDropdowns(){
     setText(sortValue, val);
     buildMenu(sortMenu, SORT_OPTIONS, currentSort);
     applyFilters();
-
-  // показывать/скрывать кнопку удаления выбранных
-  listEl.addEventListener("change", (e)=>{
-    const t = e.target;
-    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
-  });
   });
 }
 
@@ -392,12 +370,6 @@ function wireSearch(){
     query = searchInput.value;
     syncClear();
     applyFilters();
-
-  // показывать/скрывать кнопку удаления выбранных
-  listEl.addEventListener("change", (e)=>{
-    const t = e.target;
-    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
-  });
   });
 
   clearSearch.addEventListener("click", ()=>{
@@ -405,12 +377,6 @@ function wireSearch(){
     query = "";
     syncClear();
     applyFilters();
-
-  // показывать/скрывать кнопку удаления выбранных
-  listEl.addEventListener("change", (e)=>{
-    const t = e.target;
-    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
-  });
     searchInput.focus();
   });
 
@@ -599,7 +565,8 @@ async function saveGithub(){
 }
 
 async function init(){
-  if(!requireAuth()) return;
+  // ВАЖНО: await, иначе requireAuth() возвращает Promise и логика ломается
+  if(!(await requireAuth())) return;
 
   backToSite.addEventListener("click", ()=> location.href = "index.html");
 
@@ -623,28 +590,25 @@ async function init(){
     dishes = await loadDishes();
     refreshCategoryDropdown();
     applyFilters();
-
-  // показывать/скрывать кнопку удаления выбранных
-  listEl.addEventListener("change", (e)=>{
-    const t = e.target;
-    if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
-  });
     alert("Локальные изменения очищены.");
   });
-  deleteSelectedBtn.addEventListener("click", ()=>{
-  const checked = [...document.querySelectorAll(".bulkCheck:checked")];
-  if(!checked.length){
-    alert("Выберите блюда для удаления.");
-    return;
+
+  if(deleteSelectedBtn){
+    deleteSelectedBtn.addEventListener("click", ()=>{
+      const checked = [...document.querySelectorAll(".bulkCheck:checked")];
+      if(!checked.length){
+        alert("Выберите блюда для удаления.");
+        return;
+      }
+
+      if(!confirm("Удалить выбранные блюда?")) return;
+
+      const ids = checked.map(cb => cb.dataset.id);
+      dishes = dishes.filter(d => !ids.includes(d.id));
+
+      persist();
+    });
   }
-
-  if(!confirm("Удалить выбранные блюда?")) return;
-
-  const ids = checked.map(cb => cb.dataset.id);
-  dishes = dishes.filter(d => !ids.includes(d.id));
-
-  persist();
-});
 
   fillDeliverySelect();
   dishes = await loadDishes();
@@ -652,13 +616,13 @@ async function init(){
   wireSearch();
   applyFilters();
 
-  // показывать/скрывать кнопку удаления выбранных
+  // один раз (а не 50 раз) — отслеживаем выбор чекбоксов
   listEl.addEventListener("change", (e)=>{
     const t = e.target;
     if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
   });
 
-// ===== Scroll To Top =====
+  // ===== Scroll To Top =====
   const toTopBtn = document.querySelector("#toTopBtn");
   if(toTopBtn){
     const toggle = ()=>{
@@ -673,38 +637,43 @@ async function init(){
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
   }
-
 }
-
 
 init();
 
+// ===== Excel import =====
 const bulkBtn = document.getElementById("bulkExcelBtn");
 const excelModal = document.getElementById("excelModal");
 const excelCloseBtn = document.getElementById("excelCloseBtn");
-
-if (bulkBtn) {
-  bulkBtn.addEventListener("click", () => {
-    excelModal.style.display = "block";
-  });
-}
-
-if (excelCloseBtn) {
-  excelCloseBtn.addEventListener("click", () => {
-    excelModal.style.display = "none";
-  });
-}
 
 const excelInput = document.getElementById("excelFileInput");
 const excelImportBtn = document.getElementById("excelImportBtn");
 const excelStats = document.getElementById("excelStats");
 
-let excelData = [];
+function openExcelModal(){
+  if(!excelModal) return;
+  excelModal.style.display = "block";
+}
+function closeExcelModal(){
+  if(!excelModal) return;
+  excelModal.style.display = "none";
+}
+
+if (bulkBtn) {
+  bulkBtn.addEventListener("click", openExcelModal);
+}
+if (excelCloseBtn) {
+  excelCloseBtn.addEventListener("click", closeExcelModal);
+}
 
 if (excelImportBtn) {
   excelImportBtn.addEventListener("click", () => {
-    if (!excelInput.files.length) {
-      alert("Выберите файл Excel");
+    if (!excelInput || !excelInput.files || !excelInput.files.length) {
+      alert("Выберите файл Excel (.xlsx)");
+      return;
+    }
+    if (typeof XLSX === "undefined") {
+      alert("Библиотека XLSX не загрузилась. Проверь подключение SheetJS в admin.html");
       return;
     }
 
@@ -715,9 +684,9 @@ if (excelImportBtn) {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(sheet);
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-      importDishesFromExcel(json);
+      importDishesFromExcel(rows);
     };
 
     reader.readAsArrayBuffer(file);
@@ -725,53 +694,64 @@ if (excelImportBtn) {
 }
 
 function importDishesFromExcel(rows) {
-  if (!rows.length) {
-    alert("Файл пустой");
+  if (!Array.isArray(rows) || !rows.length) {
+    alert("Файл пустой или не распознан.");
     return;
   }
 
   let added = 0;
   let skipped = 0;
 
-  rows.forEach(row => {
-    if (!row.delivery || !row.category || !row.name) {
+  for(const row of rows){
+    const delivery = String(row.delivery || "").trim();
+    const category = String(row.category || "").trim();
+    const name = String(row.name || "").trim();
+    const description = String(row.description || "").toString();
+
+    // можно ослабить: если описание не обязательно — убери проверку description
+    if (!delivery || !category || !name || !description) {
       skipped++;
-      return;
+      continue;
     }
 
-    const exists = dishes.find(d =>
-      d.delivery === row.delivery &&
-      d.category === row.category &&
-      d.name === row.name
+    const exists = dishes.some(d =>
+      d.delivery === delivery &&
+      d.category === category &&
+      d.name === name
     );
 
     if (exists) {
       skipped++;
-      return;
+      continue;
     }
 
-    const newDish = {
-      id: row.id ? row.id : generateId(row.name),
-      delivery: row.delivery,
-      category: row.category,
-      name: row.name,
-      description: row.description || "",
-      photo: "assets/photos/placeholder.jpg"
-    };
+    const id = String(row.id || "").trim() || generateId(name);
 
-    dishes.push(newDish);
+    dishes.push({
+      id,
+      delivery,
+      category,
+      name,
+      description,
+      photo: PLACEHOLDER_PHOTO
+    });
+
     added++;
-  });
+  }
 
-  excelStats.innerHTML =
-    "Добавлено: " + added + "<br>Пропущено: " + skipped;
+  if(excelStats){
+    excelStats.innerHTML = `Добавлено: ${added}<br>Пропущено: ${skipped}`;
+  }
 
-  renderDishes(); // твоя функция перерисовки
+  persist();
 }
 
 function generateId(name) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-zа-я0-9]/gi, "-")
-    + "-" + Date.now();
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9а-яё]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+    + "-" + Date.now()
+  );
 }
