@@ -39,7 +39,7 @@ function resolveTscPath(p){
   if(str.startsWith("http://") || str.startsWith("https://")) return str;
   if(str.startsWith("/")) return str;
   if(str.startsWith("assets/")) return "/tsc/" + str;
-  return str; // на всякий случай
+  return str;
 }
 
 function updateBulkDeleteBtn(){
@@ -222,7 +222,6 @@ function escapeText(s){ return (s ?? "").toString(); }
 function escapeAttr(s){ return (s ?? "").toString().replaceAll('"', "&quot;"); }
 
 function persist(){
-  // сохраняем как локальный override (страховка, пока не нажали "Сохранить в GitHub")
   setOverride(dishes);
   refreshCategoryDropdown();
   applyFilters();
@@ -237,7 +236,6 @@ function openTokenModal({ prefFill = true } = {}){
   const saved = getGithubToken();
   tokenRemember.checked = !!saved;
 
-  // по умолчанию не светим токен целиком — но даём подсказку, что он сохранён
   if(prefFill && saved){
     tokenInput.value = saved;
   }else{
@@ -459,14 +457,12 @@ async function saveDish(){
     return;
   }
 
-  // по умолчанию: при edit оставляем старое фото, при add — заглушка
   let photoPath = (editMode === "edit")
     ? (dishes.find(x => x.id === editingId)?.photo || PLACEHOLDER_PHOTO)
     : PLACEHOLDER_PHOTO;
 
   // ===== ЗАГРУЗКА ФОТО =====
   if(f_photo && f_photo.files && f_photo.files[0]){
-    // Для загрузки фото нужен токен (т.к. фото коммитится сразу в репо)
     if(!getGithubToken()){
       const t = await openTokenModal({ prefFill:false });
       if(!t){
@@ -516,9 +512,7 @@ async function saveDish(){
       photo: photoPath,
       description
     }]);
-
   } else {
-
     dishes = normalizeDishes(dishes.map(x=>{
       if(x.id !== editingId) return x;
       return {
@@ -550,7 +544,6 @@ async function saveGithub(){
     saveGithubBtn.disabled = true;
     saveGithubBtn.dataset.loading = "1";
     await githubSaveDishes(dishes, token);
-    // После успешного коммита можно очистить local override, чтобы не путаться
     clearOverride();
     saveGithubBtn.dataset.state = "ok";
     setTimeout(()=>{ delete saveGithubBtn.dataset.state; }, 1200);
@@ -565,7 +558,7 @@ async function saveGithub(){
 }
 
 async function init(){
-  // ВАЖНО: await, иначе requireAuth() возвращает Promise и логика ломается
+  // ВАЖНО: await
   if(!(await requireAuth())) return;
 
   backToSite.addEventListener("click", ()=> location.href = "index.html");
@@ -605,7 +598,6 @@ async function init(){
 
       const ids = checked.map(cb => cb.dataset.id);
       dishes = dishes.filter(d => !ids.includes(d.id));
-
       persist();
     });
   }
@@ -616,7 +608,7 @@ async function init(){
   wireSearch();
   applyFilters();
 
-  // один раз (а не 50 раз) — отслеживаем выбор чекбоксов
+  // Один раз — для чекбоксов
   listEl.addEventListener("change", (e)=>{
     const t = e.target;
     if(t && t.classList && t.classList.contains("bulkCheck")) updateBulkDeleteBtn();
@@ -641,38 +633,42 @@ async function init(){
 
 init();
 
-// ===== Excel import =====
+// ===== Excel =====
+const excelWrap = document.getElementById("excelWrap");
 const bulkBtn = document.getElementById("bulkExcelBtn");
-const excelModal = document.getElementById("excelModal");
 const excelCloseBtn = document.getElementById("excelCloseBtn");
+const excelCancelBtn = document.getElementById("excelCancelBtn");
 
 const excelInput = document.getElementById("excelFileInput");
 const excelImportBtn = document.getElementById("excelImportBtn");
 const excelStats = document.getElementById("excelStats");
 
-function openExcelModal(){
-  if(!excelModal) return;
-  excelModal.style.display = "block";
-}
-function closeExcelModal(){
-  if(!excelModal) return;
-  excelModal.style.display = "none";
+function openExcel(){
+  if(!excelWrap) return;
+  excelWrap.classList.add("open");
+  excelWrap.setAttribute("aria-hidden", "false");
 }
 
-if (bulkBtn) {
-  bulkBtn.addEventListener("click", openExcelModal);
-}
-if (excelCloseBtn) {
-  excelCloseBtn.addEventListener("click", closeExcelModal);
+function closeExcel(){
+  if(!excelWrap) return;
+  excelWrap.classList.remove("open");
+  excelWrap.setAttribute("aria-hidden", "true");
 }
 
-if (excelImportBtn) {
-  excelImportBtn.addEventListener("click", () => {
-    if (!excelInput || !excelInput.files || !excelInput.files.length) {
+if(bulkBtn) bulkBtn.addEventListener("click", openExcel);
+if(excelCloseBtn) excelCloseBtn.addEventListener("click", closeExcel);
+if(excelCancelBtn) excelCancelBtn.addEventListener("click", closeExcel);
+if(excelWrap){
+  excelWrap.addEventListener("click", (e)=>{ if(e.target === excelWrap) closeExcel(); });
+}
+
+if(excelImportBtn){
+  excelImportBtn.addEventListener("click", ()=>{
+    if(!excelInput || !excelInput.files || !excelInput.files.length){
       alert("Выберите файл Excel (.xlsx)");
       return;
     }
-    if (typeof XLSX === "undefined") {
+    if(typeof XLSX === "undefined"){
       alert("Библиотека XLSX не загрузилась. Проверь подключение SheetJS в admin.html");
       return;
     }
@@ -680,7 +676,7 @@ if (excelImportBtn) {
     const file = excelInput.files[0];
     const reader = new FileReader();
 
-    reader.onload = function (e) {
+    reader.onload = (e)=>{
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -693,8 +689,8 @@ if (excelImportBtn) {
   });
 }
 
-function importDishesFromExcel(rows) {
-  if (!Array.isArray(rows) || !rows.length) {
+function importDishesFromExcel(rows){
+  if(!Array.isArray(rows) || !rows.length){
     alert("Файл пустой или не распознан.");
     return;
   }
@@ -708,8 +704,7 @@ function importDishesFromExcel(rows) {
     const name = String(row.name || "").trim();
     const description = String(row.description || "").toString();
 
-    // можно ослабить: если описание не обязательно — убери проверку description
-    if (!delivery || !category || !name || !description) {
+    if(!delivery || !category || !name || !description){
       skipped++;
       continue;
     }
@@ -720,7 +715,7 @@ function importDishesFromExcel(rows) {
       d.name === name
     );
 
-    if (exists) {
+    if(exists){
       skipped++;
       continue;
     }
@@ -746,7 +741,7 @@ function importDishesFromExcel(rows) {
   persist();
 }
 
-function generateId(name) {
+function generateId(name){
   return (
     name
       .toLowerCase()
