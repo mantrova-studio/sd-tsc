@@ -1,6 +1,6 @@
 (function () {
   // ==========================
-  // СКРЫТЫЙ ДОСТУП (простая защита)
+  // SIMPLE HIDDEN ACCESS
   // ==========================
   const EDIT_PARAM = "edit";
   const PIN_PARAM = "pin";
@@ -33,10 +33,7 @@
   }
 
   if (qs.get(EDIT_PARAM) !== "1") {
-    showBlock(
-      "Редактор закрыт",
-      `Нужно открыть так:\n\neditor.html?edit=1\n\nТекущий URL:\n${location.href}`
-    );
+    showBlock("Редактор закрыт", `Открой так:\neditor.html?edit=1\n\nURL:\n${location.href}`);
     return;
   }
 
@@ -48,7 +45,7 @@
     if (!okByUrl) {
       const entered = prompt("PIN для редактора зон:");
       if (entered !== EDITOR_PIN) {
-        showBlock("Неверный PIN", "PIN неверный. Открой editor.html?edit=1 и введи правильный PIN.");
+        showBlock("Неверный PIN", "PIN неверный.");
         return;
       }
     }
@@ -56,7 +53,7 @@
   }
 
   // ==========================
-  // TOOLTIP (кастомный)
+  // TOOLTIP (custom)
   // ==========================
   const tip = document.createElement("div");
   tip.className = "tscTip";
@@ -67,12 +64,10 @@
 
   function showTip(text, x, y) {
     tip.textContent = text;
-
     const pad = 14;
     let left = x + pad;
     let top = y + pad;
 
-    // Временно показываем для расчёта размеров
     tip.style.left = "0px";
     tip.style.top = "0px";
     tip.classList.add("show");
@@ -86,7 +81,6 @@
 
     tip.style.left = left + "px";
     tip.style.top = top + "px";
-
     tipVisible = true;
   }
 
@@ -98,14 +92,10 @@
   document.addEventListener("pointerover", (e) => {
     const el = e.target.closest?.("[data-tip]");
     if (!el) return;
-
     clearTimeout(tipTimer);
     const text = el.getAttribute("data-tip");
     if (!text) return;
-
-    tipTimer = setTimeout(() => {
-      showTip(text, e.clientX, e.clientY);
-    }, 120);
+    tipTimer = setTimeout(() => showTip(text, e.clientX, e.clientY), 120);
   });
 
   document.addEventListener("pointermove", (e) => {
@@ -123,11 +113,16 @@
   });
 
   // ==========================
-  // FILES + DRAFTS
+  // FILES + LOCAL DRAFTS
   // ==========================
   const FILES = {
     day: "data/zones/zones_day.geojson",
     night: "data/zones/zones_night.geojson",
+  };
+
+  const REPO_PATHS = {
+    day: "zones/data/zones/zones_day.geojson",
+    night: "zones/data/zones/zones_night.geojson",
   };
 
   const DRAFT_KEY = (mode) => `sd_zones_draft_${mode}`;
@@ -143,6 +138,7 @@
   const delBtn = document.getElementById("delBtn");
   const exportBtn = document.getElementById("exportBtn");
   const resetLocalBtn = document.getElementById("resetLocalBtn");
+  const ghBtn = document.getElementById("ghBtn");
 
   const modeSel = document.getElementById("modeSel");
   const zoneName = document.getElementById("zoneName");
@@ -150,8 +146,21 @@
   const savePropsBtn = document.getElementById("savePropsBtn");
   const importFile = document.getElementById("importFile");
 
+  // GitHub modal
+  const ghModal = document.getElementById("ghModal");
+  const ghClose = document.getElementById("ghClose");
+  const ghToken = document.getElementById("ghToken");
+  const ghOwner = document.getElementById("ghOwner");
+  const ghRepo = document.getElementById("ghRepo");
+  const ghBranch = document.getElementById("ghBranch");
+  const ghMsg = document.getElementById("ghMsg");
+  const ghRemember = document.getElementById("ghRemember");
+  const ghSaveBtn = document.getElementById("ghSaveBtn");
+  const ghTestBtn = document.getElementById("ghTestBtn");
+  const ghStatus = document.getElementById("ghStatus");
+
   if (!backBtn || !drawBtn || !editBtn || !delBtn || !exportBtn || !modeSel) {
-    showBlock("Не тот HTML", "Похоже, editor.js подключён не на editor.html или элементы UI не найдены.");
+    showBlock("Не тот HTML", "editor.js подключён не на editor.html или элементы UI не найдены.");
     return;
   }
 
@@ -213,9 +222,7 @@
 
   function setSelectedStyle(poly, isActive) {
     poly.options.set(
-      isActive
-        ? { strokeWidth: 3, fillOpacity: 0.5 }
-        : { strokeWidth: 2, fillOpacity: 0.35 }
+      isActive ? { strokeWidth: 3, fillOpacity: 0.5 } : { strokeWidth: 2, fillOpacity: 0.35 }
     );
   }
 
@@ -229,11 +236,7 @@
 
   function isEditingSelected() {
     if (!selected || !selected.editor) return false;
-    try {
-      return !!selected.editor.state.get("editing");
-    } catch {
-      return false;
-    }
+    try { return !!selected.editor.state.get("editing"); } catch { return false; }
   }
 
   function setDrawIconPlus() {
@@ -270,7 +273,6 @@
 
   function selectPoly(poly) {
     if (selected && selected !== poly) {
-      // при смене выделения выключаем редактирование у прошлого
       setSelectedStyle(selected, false);
       try { selected.editor && selected.editor.stopEditing(); } catch {}
     }
@@ -289,7 +291,6 @@
     const props = normalizeProps(selected.properties.getAll() || {});
     zoneName.value = props.zone || "";
     zoneDesc.value = props.description || props.note || "";
-
     syncEditBtnUi();
   }
 
@@ -350,10 +351,7 @@
   }
 
   function buildGeoJsonFromPolys() {
-    return {
-      type: "FeatureCollection",
-      features: polygons.map(polyToFeature),
-    };
+    return { type: "FeatureCollection", features: polygons.map(polyToFeature) };
   }
 
   function downloadJson(filename, obj) {
@@ -376,7 +374,6 @@
 
   function applyGeoJson(geo) {
     clearAll();
-
     const feats = geo?.features || [];
     feats.forEach((f, idx) => {
       const g = f?.geometry;
@@ -395,7 +392,6 @@
         });
       }
     });
-
     fitToAll();
   }
 
@@ -414,7 +410,6 @@
   // ACTIONS
   // ==========================
   function startDrawing() {
-    // если был незакрытый draw — закрываем
     if (drawingPoly) {
       try { drawingPoly.editor.stopDrawing(); } catch {}
       drawingPoly = null;
@@ -430,11 +425,8 @@
     drawingPoly = addPolygonFromLatLonRings([], props);
     selectPoly(drawingPoly);
 
-    try {
-      drawingPoly.editor.startDrawing();
-    } catch (e) {
-      alert("Не удалось начать рисование. Проверь load=package.full");
-    }
+    try { drawingPoly.editor.startDrawing(); }
+    catch { alert("Не удалось начать рисование. Проверь load=package.full"); }
 
     scheduleSaveDraft();
   }
@@ -476,18 +468,10 @@
 
   function saveProps() {
     if (!selected) return alert("Выбери полигон (клик по зоне).");
-
     const z = zoneName.value.trim();
     const d = zoneDesc.value.trim();
     const current = normalizeProps(selected.properties.getAll() || {});
-
-    selected.properties.set({
-      ...current,
-      zone: z,
-      description: d,
-      note: d,
-    });
-
+    selected.properties.set({ ...current, zone: z, description: d, note: d });
     scheduleSaveDraft();
   }
 
@@ -496,6 +480,165 @@
     const out = buildGeoJsonFromPolys();
     const filename = mode === "night" ? "zones_night.geojson" : "zones_day.geojson";
     downloadJson(filename, out);
+  }
+
+  // ==========================
+  // GitHub Save
+  // ==========================
+  const GH_STORAGE = "sd_zones_github_settings";
+
+  function loadGhSettings() {
+    try {
+      const raw = localStorage.getItem(GH_STORAGE);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  }
+
+  function saveGhSettings(s) {
+    try { localStorage.setItem(GH_STORAGE, JSON.stringify(s)); } catch {}
+  }
+
+  function setGhStatus(msg) {
+    if (ghStatus) ghStatus.textContent = msg || "";
+  }
+
+  function openGhModal() {
+    const defaults = loadGhSettings() || {
+      token: "",
+      owner: "mantrova-studio",
+      repo: "sd-tsc",
+      branch: "main",
+      msg: "",
+    };
+
+    ghToken.value = defaults.token || "";
+    ghOwner.value = defaults.owner || "mantrova-studio";
+    ghRepo.value = defaults.repo || "sd-tsc";
+    ghBranch.value = defaults.branch || "main";
+    ghMsg.value = defaults.msg || "";
+    ghRemember.checked = true;
+
+    setGhStatus("");
+    ghModal.style.display = "flex";
+  }
+
+  function closeGhModal() {
+    ghModal.style.display = "none";
+  }
+
+  function b64encodeUtf8(str) {
+    // UTF-8 safe base64
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    bytes.forEach((b) => (bin += String.fromCharCode(b)));
+    return btoa(bin);
+  }
+
+  async function ghRequest(url, token, options = {}) {
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        "Accept": "application/vnd.github+json",
+        "Authorization": `Bearer ${token}`,
+        ...options.headers,
+      },
+    });
+
+    const text = await res.text();
+    let json = null;
+    try { json = text ? JSON.parse(text) : null; } catch {}
+
+    if (!res.ok) {
+      const msg = json?.message ? json.message : `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+    return json;
+  }
+
+  async function ghTestAccess(settings) {
+    const { token, owner, repo } = settings;
+    const url = `https://api.github.com/repos/${owner}/${repo}`;
+    const data = await ghRequest(url, token, { method: "GET" });
+    return data;
+  }
+
+  async function ghUpsertFile(settings, path, contentText, commitMessage) {
+    const { token, owner, repo, branch } = settings;
+
+    // 1) get sha if exists
+    const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
+    let sha = null;
+    try {
+      const current = await ghRequest(getUrl, token, { method: "GET" });
+      sha = current?.sha || null;
+    } catch (e) {
+      // if not found, sha stays null (will create)
+      if (!String(e.message || "").toLowerCase().includes("not found")) {
+        // sometimes GitHub message: "Not Found"
+        // if token has no access it'll be "Not Found" too; but then repo test should fail anyway
+        // still rethrow if we can't be sure
+        // We'll allow create attempt below when sha==null
+      }
+    }
+
+    // 2) PUT content
+    const putUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
+    const body = {
+      message: commitMessage,
+      content: b64encodeUtf8(contentText),
+      branch,
+      ...(sha ? { sha } : {}),
+    };
+
+    return await ghRequest(putUrl, token, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  function nowStamp() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  async function saveToGitHub() {
+    const mode = getMode();
+    const geo = buildGeoJsonFromPolys();
+    const text = JSON.stringify(geo, null, 2);
+
+    const settings = {
+      token: (ghToken.value || "").trim(),
+      owner: (ghOwner.value || "").trim(),
+      repo: (ghRepo.value || "").trim(),
+      branch: (ghBranch.value || "main").trim(),
+      msg: (ghMsg.value || "").trim(),
+    };
+
+    if (!settings.token || !settings.owner || !settings.repo || !settings.branch) {
+      setGhStatus("Заполни token / owner / repo / branch.");
+      return;
+    }
+
+    const commitMessage =
+      settings.msg
+        ? settings.msg
+        : `zones: update ${mode} (${nowStamp()})`;
+
+    const path = REPO_PATHS[mode];
+
+    setGhStatus("Проверяю доступ…");
+    await ghTestAccess(settings);
+
+    setGhStatus(`Коммичу файл:\n${path}\n…`);
+    const result = await ghUpsertFile(settings, path, text, commitMessage);
+
+    if (ghRemember.checked) saveGhSettings(settings);
+
+    const commitUrl = result?.commit?.html_url || "";
+    setGhStatus(`Готово ✅\nКоммит: ${commitMessage}\n${commitUrl}`);
   }
 
   // ==========================
@@ -529,7 +672,6 @@
         `Сбросить локальные изменения для режима "${mode === "night" ? "Ночь" : "День"}"?\n\nЛокальный черновик будет удалён, загрузится исходный файл.`
       );
       if (!ok) return;
-
       clearDraft(mode);
       await loadCurrentModePreferDraft();
       alert("Локальный черновик удалён. Загружен исходный GeoJSON.");
@@ -537,7 +679,6 @@
   }
 
   modeSel.addEventListener("change", async () => {
-    // если рисовали — закрываем рисование
     if (isDrawing) {
       isDrawing = false;
       drawBtn.classList.remove("active");
@@ -545,7 +686,6 @@
       drawBtn.setAttribute("data-tip", "Новый полигон");
       stopDrawing();
     }
-    // если редактировали вершины — выключим
     if (isEditingSelected()) {
       try { selected.editor.stopEditing(); } catch {}
       syncEditBtnUi();
@@ -571,6 +711,41 @@
   zoneName.addEventListener("input", scheduleSaveDraft);
   zoneDesc.addEventListener("input", scheduleSaveDraft);
 
+  // GitHub modal events
+  if (ghBtn && ghModal) {
+    ghBtn.addEventListener("click", openGhModal);
+    ghClose.addEventListener("click", closeGhModal);
+    ghModal.addEventListener("click", (e) => {
+      if (e.target === ghModal) closeGhModal();
+    });
+
+    ghTestBtn.addEventListener("click", async () => {
+      try {
+        const settings = {
+          token: (ghToken.value || "").trim(),
+          owner: (ghOwner.value || "").trim(),
+          repo: (ghRepo.value || "").trim(),
+          branch: (ghBranch.value || "main").trim(),
+          msg: (ghMsg.value || "").trim(),
+        };
+        setGhStatus("Проверяю доступ…");
+        const repoInfo = await ghTestAccess(settings);
+        setGhStatus(`Ок ✅\n${repoInfo.full_name}\nDefault branch: ${repoInfo.default_branch}`);
+        if (ghRemember.checked) saveGhSettings(settings);
+      } catch (e) {
+        setGhStatus("Ошибка ❌\n" + (e.message || e));
+      }
+    });
+
+    ghSaveBtn.addEventListener("click", async () => {
+      try {
+        await saveToGitHub();
+      } catch (e) {
+        setGhStatus("Ошибка ❌\n" + (e.message || e));
+      }
+    });
+  }
+
   // ==========================
   // INIT
   // ==========================
@@ -582,10 +757,7 @@
     });
 
     if (!modeSel.value) modeSel.value = "day";
-
-    // иконки/tooltip в начальное состояние
     setDrawIconPlus();
-    drawBtn.setAttribute("data-tip", "Новый полигон");
     syncEditBtnUi();
 
     try {
