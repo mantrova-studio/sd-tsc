@@ -216,6 +216,28 @@
   </svg>
 </button>
 
+<!-- Модалка Excel -->
+<div class="modal" id="excelModal" style="display:none;">
+  <div class="modalContent">
+    <h2>Импорт блюд из Excel</h2>
+
+    <div style="margin:15px 0;">
+      <a href="assets/templates/dishes_template.xlsx" download>
+        Скачать шаблон
+      </a>
+    </div>
+
+    <input type="file" id="excelFileInput" accept=".xlsx" />
+
+    <div id="excelStats" style="margin-top:15px;"></div>
+
+    <div style="margin-top:20px;">
+      <button id="excelImportBtn" class="smallBtn">Импортировать</button>
+      <button id="excelCloseBtn" class="smallBtn">Закрыть</button>
+    </div>
+  </div>
+</div>
+  
 <!-- SheetJS для чтения Excel -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   
