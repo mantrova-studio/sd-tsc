@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Админка смен — SD TSC</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbarInner">
+      <div class="brand">
+        <div class="brandDot"></div>
+        <div>
+          <div class="brandTitle">SD • TSC — АДМИНКА</div>
+          <div class="brandSub" id="lockedState">Доступ: —</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a class="iconBtn" href="./index.html" title="На сайт">← Сайт</a>
+
+        <button class="iconBtn" id="searchBtn" type="button" title="Поиск по сотруднику">
+          🔎 Поиск
+        </button>
+
+        <button class="iconBtn" id="employeesBtn" type="button" title="Сотрудники">
+          👤 Сотрудники
+        </button>
+
+        <button class="iconBtn" id="templatesBtn" type="button" title="Шаблоны смен">
+          ⏱ Шаблоны
+        </button>
+
+        <button class="iconBtn" id="settingsBtn" type="button" title="Настройки">
+          <img src="./assets/icons/gear.svg" alt="">
+          Настройки
+        </button>
+
+        <button class="iconBtn" id="authBtn" type="button" title="Вход">
+          <img src="./assets/icons/lock.svg" alt="">
+          Вход
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="grid">
+      <div class="card" id="calendarCard">
+        <div class="cardHeader">
+          <div class="hTitle">
+            <img src="./assets/icons/calendar.svg" alt="">
+            <div>
+              <div class="t">Календарь (редактирование)</div>
+              <div class="s">Нажми на дату — откроется редактор дня</div>
+            </div>
+          </div>
+
+          <div class="hRight monthNav">
+            <button class="monthBtn" id="prevMonth" type="button" title="Предыдущий месяц">
+              <img src="./assets/icons/chevron-left.svg" alt="">
+            </button>
+
+            <div class="monthLabel">
+              <div id="monthLabel">—</div>
+              <small>
+                <span id="repoValue">—</span> • <span id="tokenState">—</span>
+              </small>
+            </div>
+
+            <button class="monthBtn" id="nextMonth" type="button" title="Следующий месяц">
+              <img src="./assets/icons/chevron-right.svg" alt="">
+            </button>
+
+            <button class="btn small" id="todayBtn" type="button">Сегодня</button>
+            <button class="btn small" id="reloadBtn" type="button">Обновить</button>
+            <button class="btn small primary" id="saveBtn" type="button">
+              <img src="./assets/icons/save.svg" alt="" style="width:16px;height:16px;opacity:.9">
+              Сохранить в GitHub
+            </button>
+          </div>
+        </div>
+
+        <div class="calendar">
+          <div class="weekdays" id="weekdays"></div>
+          <div class="days" id="days"></div>
+        </div>
+
+        <div class="footerHint">
+          <div class="note">
+            • Защита от перезаписи: при сохранении проверяется sha файла в GitHub.<br/>
+            • Если несколько админов правят одновременно — сначала нажми “Обновить”.
+          </div>
+          <div>© POLIHOV DEV STUDIO</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div class="modal" id="authModal">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="left">
+          <div class="t">Вход в админку</div>
+          <div class="s">Пароль проверяется по SHA-256 (в коде хранится хэш)</div>
+        </div>
+        <button class="modalClose" type="button">✕</button>
+      </div>
+      <div class="modalBody">
+        <div class="formGrid">
+          <div class="field">
+            <div class="label">Пароль</div>
+            <input class="input" id="passInput" type="password" placeholder="••••••••" autocomplete="current-password" />
+          </div>
+          <div style="display:flex; gap:10px; justify-content:flex-end">
+            <button class="btn primary" id="loginBtn" type="button">Войти</button>
+          </div>
+          <div class="note">
+            Чтобы задать свой пароль — открой консоль и вызови <code>__printHash("пароль")</code>,
+            затем вставь хэш в <code>ADMIN_PASSWORD_SHA256</code>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal" id="settingsModal">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="left">
+          <div class="t">Настройки GitHub</div>
+          <div class="s">Token хранится только на этом устройстве (localStorage)</div>
+        </div>
+        <button class="modalClose" type="button">✕</button>
+      </div>
+      <div class="modalBody">
+        <div class="formGrid">
+          <div class="field">
+            <div class="label">Репозиторий (owner/repo)</div>
+            <input class="input" id="repoInput" placeholder="mantrova-studio/sd-tsc" />
+          </div>
+          <div class="field">
+            <div class="label">GitHub token (PAT)</div>
+            <input class="input" id="tokenInput" placeholder="ghp_..." />
+          </div>
+
+          <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
+            <button class="btn" type="button" onclick="localStorage.removeItem('smena_gh_token'); alert('Token очищен на этом устройстве'); location.reload();">Очистить token</button>
+            <button class="btn primary" id="saveSettingsBtn" type="button">Сохранить</button>
+          </div>
+
+          <div class="note">
+            Права токена: достаточно <b>repo</b> (или <b>contents:write</b> в fine-grained) для записи в репозиторий.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employees Modal -->
+  <div class="modal" id="employeesModal">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="left">
+          <div class="t">Сотрудники</div>
+          <div class="s">Список используется в селектах смен</div>
+        </div>
+        <button class="modalClose" type="button">✕</button>
+      </div>
+      <div class="modalBody">
+        <div class="row2">
+          <div class="field">
+            <div class="label">Поиск</div>
+            <input class="input" id="empSearch" placeholder="Имя, роль…" />
+          </div>
+          <div class="field">
+            <div class="label">Добавить</div>
+            <button class="btn primary" id="addEmpBtn" type="button">+ Новый сотрудник</button>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+        <div class="list" id="empList"></div>
+
+        <div class="note">
+          Удаление блокируется, если сотрудник уже стоит в сменах (чтобы не потерять данные).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Templates Modal -->
+  <div class="modal" id="templatesModal">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="left">
+          <div class="t">Шаблоны смен</div>
+          <div class="s">Хранятся на устройстве админа (localStorage)</div>
+        </div>
+        <button class="modalClose" type="button">✕</button>
+      </div>
+      <div class="modalBody">
+        <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
+          <button class="btn primary" id="addTplBtn" type="button">+ Новый шаблон</button>
+        </div>
+
+        <div class="hr"></div>
+        <div class="list" id="tplList"></div>
+
+        <div class="note">
+          Шаблон — это “время + отдел + роль + заметка”. Сотрудника выбираешь при добавлении смены.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Modal -->
+  <div class="modal" id="searchModal">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="left">
+          <div class="t">Поиск по сменам</div>
+          <div class="s">Ищет по имени сотрудника и заметке</div>
+        </div>
+        <button class="modalClose" type="button">✕</button>
+      </div>
+      <div class="modalBody">
+        <div class="formGrid">
+          <div class="field">
+            <div class="label">Запрос</div>
+            <input class="input" id="shiftSearch" placeholder="Например: Иванов, замена, курьер…" />
+          </div>
+          <div class="field">
+            <div class="label">Результаты</div>
+            <div class="list" id="searchResults"></div>
+          </div>
+          <div class="note">
+            Нажми на результат — откроется редактор соответствующего дня.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Day Modal -->
+  <div class="modal" id="editModal">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div class="left">
+          <div class="t" id="editTitle">—</div>
+          <div class="s" id="editSub">—</div>
+        </div>
+        <button class="modalClose" type="button">✕</button>
+      </div>
+      <div class="modalBody">
+
+        <!-- Quick add -->
+        <div class="formGrid">
+          <div class="row2">
+            <div class="field">
+              <div class="label">Быстро добавить: сотрудник</div>
+              <select class="select" id="quickEmp"></select>
+            </div>
+            <div class="field">
+              <div class="label">Шаблон смены</div>
+              <select class="select" id="quickTpl"></select>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
+            <button class="btn small" id="addShiftBtn" type="button">Добавить пустую</button>
+            <button class="btn small primary" id="quickAddBtn" type="button">Быстро добавить</button>
+            <button class="btn small primary" id="applyDayBtn" type="button">Применить день</button>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="list" id="editList"></div>
+
+        <div class="hr"></div>
+        <div class="note">
+          “Применить день” меняет данные локально. Чтобы записать в репозиторий — нажми “Сохранить в GitHub”.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/admin.js"></script>
+</body>
+</html>
