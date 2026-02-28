@@ -201,10 +201,10 @@ function renderList(){
       </div>
 
       <div class="rowRight">
-        <button class="iconBtn hasTip" data-act="edit" data-tip="Редактировать">
+        <button class="iconBtn" data-act="edit" title="Редактировать">
           <img src="/tsc/assets/icons/edit.svg" alt="edit" />
         </button>
-        <button class="iconBtn delete hasTip" data-act="delete" data-tip="Удалить">
+        <button class="iconBtn delete" data-act="delete" title="Удалить">
           <img src="/tsc/assets/icons/delete.svg" alt="delete" />
         </button>
       </div>
