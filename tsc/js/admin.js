@@ -201,10 +201,10 @@ function renderList(){
       </div>
 
       <div class="rowRight">
-        <button class="iconBtn" data-act="edit" title="Редактировать">
+        <button class="iconBtn" data-act="edit" data-tip="Редактировать" aria-label="Редактировать" type="button">
           <img src="/tsc/assets/icons/edit.svg" alt="edit" />
         </button>
-        <button class="iconBtn delete" data-act="delete" title="Удалить">
+        <button class="iconBtn delete" data-act="delete" data-tip="Удалить" aria-label="Удалить" type="button">
           <img src="/tsc/assets/icons/delete.svg" alt="delete" />
         </button>
       </div>
@@ -557,9 +557,95 @@ async function saveGithub(){
   }
 }
 
+/* ===== TOOLTIP like editor.html ===== */
+function initTscTooltip(){
+  const tip = document.createElement("div");
+  tip.className = "tscTip";
+  document.body.appendChild(tip);
+
+  let currentEl = null;
+
+  const show = (el)=>{
+    const text = el?.dataset?.tip;
+    if(!text) return;
+    currentEl = el;
+    tip.textContent = text;
+    tip.classList.add("show");
+  };
+
+  const hide = ()=>{
+    currentEl = null;
+    tip.classList.remove("show");
+  };
+
+  const move = (x, y)=>{
+    const pad = 14;
+    let tx = x + pad;
+    let ty = y + pad;
+
+    const w = tip.offsetWidth || 180;
+    const h = tip.offsetHeight || 34;
+    const maxX = window.innerWidth - w - 10;
+    const maxY = window.innerHeight - h - 10;
+
+    if(tx > maxX) tx = Math.max(10, x - w - pad);
+    if(ty > maxY) ty = Math.max(10, y - h - pad);
+
+    tip.style.left = tx + "px";
+    tip.style.top = ty + "px";
+  };
+
+  document.addEventListener("mouseenter", (e)=>{
+    const el = e.target?.closest?.("[data-tip]");
+    if(!el) return;
+    show(el);
+  }, true);
+
+  document.addEventListener("mouseleave", (e)=>{
+    const el = e.target?.closest?.("[data-tip]");
+    if(!el) return;
+    if(currentEl && (el === currentEl || el.contains(currentEl) || currentEl.contains(el))) hide();
+  }, true);
+
+  document.addEventListener("mousemove", (e)=>{
+    if(!currentEl) return;
+    move(e.clientX, e.clientY);
+  }, { passive:true });
+
+  document.addEventListener("focusin", (e)=>{
+    const el = e.target?.closest?.("[data-tip]");
+    if(!el) return;
+    show(el);
+    const r = el.getBoundingClientRect();
+    move(r.left + r.width/2, r.top);
+  });
+
+  document.addEventListener("focusout", (e)=>{
+    const el = e.target?.closest?.("[data-tip]");
+    if(!el) return;
+    hide();
+  });
+
+  window.addEventListener("scroll", hide, { passive:true });
+  window.addEventListener("resize", hide);
+}
+
+function migrateTitleToDataTip(){
+  document.querySelectorAll("[title]").forEach(el=>{
+    if(!el.dataset.tip) el.dataset.tip = el.getAttribute("title");
+    el.removeAttribute("title");
+  });
+}
+/* ===== /TOOLTIP ===== */
+
 async function init(){
   // ВАЖНО: await
   if(!(await requireAuth())) return;
+
+  // tooltips как в editor.html
+  initTscTooltip();
+  // переносим все title="" в data-tip (чтобы не было системного тултипа)
+  migrateTitleToDataTip();
 
   backToSite.addEventListener("click", ()=> location.href = "index.html");
 
