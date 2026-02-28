@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Редактор зон</title>
 
-  <!-- общий css (в папке zones надо подниматься на уровень выше) -->
   <link rel="stylesheet" href="../css/styles.css" />
 
   <style>
@@ -16,9 +15,7 @@
       gap:14px;
       padding:14px;
     }
-    @media (max-width: 980px){
-      .editorLayout{ grid-template-columns: 1fr; }
-    }
+    @media (max-width: 980px){ .editorLayout{ grid-template-columns: 1fr; } }
 
     .editorSide{
       border:1px solid rgba(255,255,255,.08);
@@ -29,14 +26,7 @@
       height: fit-content;
     }
 
-    .edTitle{
-      font-size:14px;
-      font-weight:800;
-      letter-spacing:.2px;
-      margin-bottom:10px;
-      opacity:.95;
-    }
-
+    .edTitle{ font-size:14px; font-weight:800; letter-spacing:.2px; margin-bottom:10px; opacity:.95; }
     .edLabel{ font-size:12px; opacity:.75; margin:10px 0 6px; }
 
     .edInput, .edTextarea, .edSelect{
@@ -54,20 +44,13 @@
     .edRow{ display:flex; gap:10px; }
     .edRow > *{ flex:1; }
 
-    .edHint{
-      font-size:12px;
-      opacity:.75;
-      line-height:1.45;
-      margin-top:10px;
-    }
+    .edHint{ font-size:12px; opacity:.75; line-height:1.45; margin-top:10px; }
 
     /* map */
     .zoneMap{ height:70vh; max-height:680px; }
-    @media (max-width: 980px){
-      .zoneMap{ height:60vh; }
-    }
+    @media (max-width: 980px){ .zoneMap{ height:60vh; } }
 
-    /* ======= кнопки в карточке (Сохранить/Импорт) ======= */
+    /* buttons in card */
     .edBtn{
       border:1px solid rgba(255,255,255,.10);
       background:rgba(255,255,255,.06);
@@ -84,7 +67,7 @@
     .edBtn:hover{ background:rgba(255,255,255,.10); }
     .edBtn:active{ transform: translateY(1px); }
 
-    /* ======= icon toolbar ======= */
+    /* icon toolbar */
     .edBar{
       display:flex;
       gap:10px;
@@ -123,16 +106,14 @@
       border-color:rgba(80,200,120,.35);
     }
 
-    /* ВАЖНО: красная обводка всегда */
-    .edIconBtn.edDanger{
-      border-color: rgba(255,80,80,.28);
-    }
+    /* danger always red border */
+    .edIconBtn.edDanger{ border-color: rgba(255,80,80,.28); }
     .edIconBtn.edDanger:hover{
       background:rgba(255,80,80,.15);
       border-color:rgba(255,80,80,.35);
     }
 
-    /* ======= custom tooltip ======= */
+    /* custom tooltip */
     .tscTip{
       position: fixed;
       z-index: 1000000;
@@ -150,12 +131,56 @@
       transform: translateY(6px);
       opacity: 0;
       transition: opacity .12s ease, transform .12s ease;
-      max-width: 240px;
+      max-width: 260px;
       white-space: nowrap;
     }
-    .tscTip.show{
-      opacity: 1;
-      transform: translateY(0);
+    .tscTip.show{ opacity: 1; transform: translateY(0); }
+
+    /* modal */
+    .modalBack{
+      position:fixed; inset:0; z-index:2000000;
+      background:rgba(0,0,0,.55);
+      display:none; align-items:center; justify-content:center;
+      padding:16px;
+    }
+    .modal{
+      width:min(560px, 100%);
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(15,18,25,.82);
+      border-radius:18px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 16px 40px rgba(0,0,0,.45);
+      padding:14px;
+    }
+    .modalTop{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
+    }
+    .modalTitle{ font-size:14px; font-weight:900; letter-spacing:.2px; }
+    .modalClose{
+      width:40px; height:40px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.92);
+      cursor:pointer;
+      font-weight:900;
+    }
+    .modalClose:hover{ background:rgba(255,255,255,.10); }
+
+    .modalGrid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    @media (max-width: 560px){ .modalGrid{ grid-template-columns: 1fr; } }
+
+    .chkRow{ display:flex; align-items:center; gap:10px; margin-top:10px; opacity:.9; font-size:12px; }
+    .modalActions{ display:flex; gap:10px; margin-top:12px; }
+    .modalActions .edBtn{ flex:1; }
+
+    .statusLine{
+      margin-top:10px;
+      font-size:12px;
+      opacity:.85;
+      line-height:1.4;
+      white-space:pre-wrap;
     }
   </style>
 </head>
@@ -174,16 +199,15 @@
         <h1 class="siteTitle">Редактор зон</h1>
       </div>
 
-      <!-- Икон-панель -->
       <div class="edBar">
-        <!-- drawBtn: плюс/галочка -->
+        <!-- draw -->
         <button class="edIconBtn" id="drawBtn" type="button" data-tip="Новый полигон">
           <svg id="drawIcon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
 
-        <!-- edit vertices: треугольник/галочка -->
+        <!-- vertices -->
         <button class="edIconBtn" id="editBtn" type="button" data-tip="Редактировать вершины">
           <svg id="editIcon" viewBox="0 0 24 24" aria-hidden="true">
             <circle class="fill" cx="6" cy="18" r="2"></circle>
@@ -208,6 +232,13 @@
             <path d="M14 2H6a2 2 0 0 0-2 2v16h16V8z" stroke-width="2"/>
             <path d="M14 2v6h6" stroke-width="2"/>
             <text x="7" y="16" font-size="6" fill="currentColor">geo</text>
+          </svg>
+        </button>
+
+        <!-- github save -->
+        <button class="edIconBtn" id="ghBtn" type="button" data-tip="Сохранить в GitHub (коммит)">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path class="fill" d="M12 2.2A10 10 0 0 0 8.84 21.7c.5.1.68-.22.68-.48v-1.7c-2.77.6-3.35-1.18-3.35-1.18-.45-1.14-1.1-1.44-1.1-1.44-.9-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.63-1.34-2.21-.25-4.54-1.1-4.54-4.9 0-1.08.39-1.96 1.03-2.65-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.01A9.55 9.55 0 0 1 12 6.8c.85 0 1.71.12 2.51.35 1.9-1.28 2.74-1.01 2.74-1.01.56 1.37.21 2.39.1 2.64.64.69 1.03 1.57 1.03 2.65 0 3.81-2.34 4.65-4.57 4.9.36.31.68.92.68 1.86v2.75c0 .26.18.59.69.48A10 10 0 0 0 12 2.2Z"/>
           </svg>
         </button>
 
@@ -242,7 +273,6 @@
       <div class="edLabel">Описание (props.description)</div>
       <textarea class="edTextarea" id="zoneDesc" placeholder="Текст условий доставки..."></textarea>
 
-      <!-- эти две кнопки не трогаем -->
       <div class="edRow" style="margin-top:10px;">
         <button class="edBtn" id="savePropsBtn" type="button">💾 Сохранить</button>
 
@@ -253,22 +283,57 @@
       </div>
 
       <div class="edHint">
-        <b>Как работать:</b><br/>
-        • Клик по зоне — выбрать<br/>
-        • ➕ Новый полигон: ставь точки, двойной клик завершить<br/>
-        • ✅ та же кнопка завершает рисование<br/>
-        • “Вершины” — включить/выключить режим вершин (✅)<br/>
-        • Экспорт — скачай файл и замени в репо:<br/>
-        <span style="opacity:.8">zones/data/zones/zones_day.geojson</span><br/>
-        <span style="opacity:.8">zones/data/zones/zones_night.geojson</span>
+        <b>GitHub:</b> кнопка с котиком создаёт коммит в репо.
+        История версий будет в коммитах автоматически.
       </div>
     </aside>
   </div>
 
-  <!-- Яндекс карты -->
-  <script src="https://api-maps.yandex.ru/2.1/?apikey=62bb0bf1-3235-41f0-b3de-b09cfed11b52&lang=ru_RU&load=package.full"></script>
+  <!-- GitHub modal -->
+  <div class="modalBack" id="ghModal">
+    <div class="modal">
+      <div class="modalTop">
+        <div class="modalTitle">Сохранение в GitHub</div>
+        <button class="modalClose" id="ghClose" type="button">✕</button>
+      </div>
 
-  <!-- редактор -->
+      <div class="edLabel">Token (Fine-grained PAT, Contents: RW)</div>
+      <input class="edInput" id="ghToken" placeholder="ghp_… или github_pat_…" autocomplete="off" />
+
+      <div class="modalGrid" style="margin-top:10px;">
+        <div>
+          <div class="edLabel">Owner</div>
+          <input class="edInput" id="ghOwner" placeholder="mantrova-studio" />
+        </div>
+        <div>
+          <div class="edLabel">Repo</div>
+          <input class="edInput" id="ghRepo" placeholder="sd-tsc" />
+        </div>
+        <div>
+          <div class="edLabel">Branch</div>
+          <input class="edInput" id="ghBranch" placeholder="main" />
+        </div>
+        <div>
+          <div class="edLabel">Commit message (опционально)</div>
+          <input class="edInput" id="ghMsg" placeholder="update zones" />
+        </div>
+      </div>
+
+      <div class="chkRow">
+        <input type="checkbox" id="ghRemember" checked />
+        <label for="ghRemember">Запомнить настройки в этом браузере</label>
+      </div>
+
+      <div class="modalActions">
+        <button class="edBtn" id="ghSaveBtn" type="button">Сохранить (коммит)</button>
+        <button class="edBtn" id="ghTestBtn" type="button">Проверить доступ</button>
+      </div>
+
+      <div class="statusLine" id="ghStatus"></div>
+    </div>
+  </div>
+
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=62bb0bf1-3235-41f0-b3de-b09cfed11b52&lang=ru_RU&load=package.full"></script>
   <script src="js/editor.js"></script>
 </body>
 </html>
