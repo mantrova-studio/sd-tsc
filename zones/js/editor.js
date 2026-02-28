@@ -5,7 +5,7 @@
   const EDIT_PARAM = "edit";
   const PIN_PARAM = "pin";
   const STORAGE_AUTH = "sd_zones_editor_authed";
-  const EDITOR_PIN = "601/18"; // поменяй
+  const EDITOR_PIN = "2468"; // поменяй
 
   const qs = new URLSearchParams(location.search);
 
@@ -67,20 +67,26 @@
 
   function showTip(text, x, y) {
     tip.textContent = text;
+
     const pad = 14;
     let left = x + pad;
     let top = y + pad;
 
-    // clamp to viewport
+    // Временно показываем для расчёта размеров
+    tip.style.left = "0px";
+    tip.style.top = "0px";
+    tip.classList.add("show");
+
     const r = tip.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+
     if (left + r.width + 10 > vw) left = vw - r.width - 10;
     if (top + r.height + 10 > vh) top = vh - r.height - 10;
 
     tip.style.left = left + "px";
     tip.style.top = top + "px";
-    tip.classList.add("show");
+
     tipVisible = true;
   }
 
@@ -133,6 +139,7 @@
   const drawBtn = document.getElementById("drawBtn");
   const drawIcon = document.getElementById("drawIcon");
   const editBtn = document.getElementById("editBtn");
+  const editIcon = document.getElementById("editIcon");
   const delBtn = document.getElementById("delBtn");
   const exportBtn = document.getElementById("exportBtn");
   const resetLocalBtn = document.getElementById("resetLocalBtn");
@@ -144,10 +151,7 @@
   const importFile = document.getElementById("importFile");
 
   if (!backBtn || !drawBtn || !editBtn || !delBtn || !exportBtn || !modeSel) {
-    showBlock(
-      "Не тот HTML",
-      "Похоже, editor.js подключён не на editor.html или элементы UI не найдены."
-    );
+    showBlock("Не тот HTML", "Похоже, editor.js подключён не на editor.html или элементы UI не найдены.");
     return;
   }
 
@@ -223,10 +227,52 @@
     return p;
   }
 
+  function isEditingSelected() {
+    if (!selected || !selected.editor) return false;
+    try {
+      return !!selected.editor.state.get("editing");
+    } catch {
+      return false;
+    }
+  }
+
+  function setDrawIconPlus() {
+    drawIcon.innerHTML = `<path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round"/>`;
+  }
+  function setDrawIconCheck() {
+    drawIcon.innerHTML = `<path d="M6 12l4 4 8-8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+
+  function setEditIconTriangle() {
+    editIcon.innerHTML = `
+      <circle class="fill" cx="6" cy="18" r="2"></circle>
+      <circle class="fill" cx="18" cy="18" r="2"></circle>
+      <circle class="fill" cx="12" cy="6" r="2"></circle>
+      <path d="M8 16 L12 8 L16 16 Z" stroke-width="1.5" />
+    `;
+  }
+  function setEditIconCheck() {
+    editIcon.innerHTML = `<path d="M6 12l4 4 8-8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+
+  function syncEditBtnUi() {
+    const on = isEditingSelected();
+    if (on) {
+      editBtn.classList.add("active");
+      editBtn.setAttribute("data-tip", "Завершить вершины");
+      setEditIconCheck();
+    } else {
+      editBtn.classList.remove("active");
+      editBtn.setAttribute("data-tip", "Редактировать вершины");
+      setEditIconTriangle();
+    }
+  }
+
   function selectPoly(poly) {
     if (selected && selected !== poly) {
+      // при смене выделения выключаем редактирование у прошлого
       setSelectedStyle(selected, false);
-      try { selected.editor && selected.editor.stopEditing(); } catch (e) {}
+      try { selected.editor && selected.editor.stopEditing(); } catch {}
     }
 
     selected = poly;
@@ -234,6 +280,7 @@
     if (!selected) {
       zoneName.value = "";
       zoneDesc.value = "";
+      syncEditBtnUi();
       return;
     }
 
@@ -242,12 +289,14 @@
     const props = normalizeProps(selected.properties.getAll() || {});
     zoneName.value = props.zone || "";
     zoneDesc.value = props.description || props.note || "";
+
+    syncEditBtnUi();
   }
 
   function attachPolyEvents(poly) {
     poly.events.add("click", () => selectPoly(poly));
-    try { poly.geometry.events.add("change", scheduleSaveDraft); } catch (e) {}
-    try { poly.properties.events.add("change", scheduleSaveDraft); } catch (e) {}
+    try { poly.geometry.events.add("change", scheduleSaveDraft); } catch {}
+    try { poly.properties.events.add("change", scheduleSaveDraft); } catch {}
   }
 
   function addPolygonFromLatLonRings(ringsLatLon, props = {}) {
@@ -261,7 +310,7 @@
 
   function clearAll() {
     polygons.forEach((p) => {
-      try { p.editor && p.editor.stopEditing(); } catch (e) {}
+      try { p.editor && p.editor.stopEditing(); } catch {}
       map.geoObjects.remove(p);
     });
     polygons.length = 0;
@@ -362,20 +411,12 @@
   }
 
   // ==========================
-  // DRAW / EDIT / DELETE
+  // ACTIONS
   // ==========================
-  function setDrawIconPlus() {
-    drawIcon.innerHTML = `<path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round"/>`;
-  }
-
-  function setDrawIconCheck() {
-    drawIcon.innerHTML = `<path d="M6 12l4 4 8-8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
-  }
-
   function startDrawing() {
     // если был незакрытый draw — закрываем
     if (drawingPoly) {
-      try { drawingPoly.editor.stopDrawing(); } catch (e) {}
+      try { drawingPoly.editor.stopDrawing(); } catch {}
       drawingPoly = null;
     }
 
@@ -400,7 +441,7 @@
 
   function stopDrawing() {
     if (!drawingPoly) return;
-    try { drawingPoly.editor.stopDrawing(); } catch (e) {}
+    try { drawingPoly.editor.stopDrawing(); } catch {}
     drawingPoly = null;
     fitToAll();
     scheduleSaveDraft();
@@ -409,11 +450,12 @@
   function toggleEdit() {
     if (!selected) return alert("Выбери полигон (клик по зоне).");
     try {
-      const isEditing = selected.editor && selected.editor.state.get("editing");
-      if (isEditing) selected.editor.stopEditing();
+      const on = isEditingSelected();
+      if (on) selected.editor.stopEditing();
       else selected.editor.startEditing();
       scheduleSaveDraft();
-    } catch (e) {
+      syncEditBtnUi();
+    } catch {
       alert("Редактирование недоступно.");
     }
   }
@@ -422,7 +464,7 @@
     if (!selected) return;
     if (!confirm("Удалить выбранный полигон?")) return;
 
-    try { selected.editor && selected.editor.stopEditing(); } catch (e) {}
+    try { selected.editor && selected.editor.stopEditing(); } catch {}
     map.geoObjects.remove(selected);
 
     const i = polygons.indexOf(selected);
@@ -495,13 +537,18 @@
   }
 
   modeSel.addEventListener("change", async () => {
-    // если рисовали — закрываем режим рисования
+    // если рисовали — закрываем рисование
     if (isDrawing) {
       isDrawing = false;
       drawBtn.classList.remove("active");
       setDrawIconPlus();
       drawBtn.setAttribute("data-tip", "Новый полигон");
       stopDrawing();
+    }
+    // если редактировали вершины — выключим
+    if (isEditingSelected()) {
+      try { selected.editor.stopEditing(); } catch {}
+      syncEditBtnUi();
     }
     await loadCurrentModePreferDraft();
   });
@@ -535,6 +582,11 @@
     });
 
     if (!modeSel.value) modeSel.value = "day";
+
+    // иконки/tooltip в начальное состояние
+    setDrawIconPlus();
+    drawBtn.setAttribute("data-tip", "Новый полигон");
+    syncEditBtnUi();
 
     try {
       await loadCurrentModePreferDraft();
