@@ -70,7 +70,10 @@
 
         <!-- Кнопки ниже в будущем можно вернуть. Сейчас скрываем по просьбе. -->
         <!-- <button class="smallBtn" id="exportBtn" type="button">Экспорт JSON</button> -->
-        
+        <button class="smallBtn" id="bulkExcelBtn" type="button">
+  <img src="assets/icons/upload.svg" alt="">
+  Excel
+</button>
 
         <button class="squareBtn" id="saveGithubBtn" type="button" title="Сохранить в GitHub" aria-label="Сохранить в GitHub">
           <img src="/tsc/assets/icons/save.svg" alt="save" />
@@ -213,6 +216,9 @@
   </svg>
 </button>
 
+<!-- SheetJS для чтения Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  
   <script type="module" src="/tsc/js/admin.js"></script>
 </body>
 </html>
