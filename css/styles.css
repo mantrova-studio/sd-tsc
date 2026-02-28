@@ -874,11 +874,6 @@ input[type="search"]::-webkit-search-decoration{
 /* ===== TSC Tooltip ===== */
 .hasTip{
   position: relative;
-  display:flex;
-  gap:10px;
-  justify-content:center;
-  padding: 10px 0 2px;
-  flex-wrap:wrap;
 }
 
 .hasTip::after{
