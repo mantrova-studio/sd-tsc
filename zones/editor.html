@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="../css/styles.css" />
 
   <style>
-    /* панель редактора в стиле tsc */
+    /* layout */
     .editorLayout{
       display:grid;
       grid-template-columns: 1fr 360px;
@@ -51,33 +51,6 @@
     }
     .edTextarea{ min-height:120px; resize:vertical; }
 
-    .edBar{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      justify-content:center;
-      padding-top:8px;
-    }
-
-    .edBtn{
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.06);
-      color:rgba(255,255,255,.92);
-      padding:10px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      font-weight:800;
-      font-size:13px;
-    }
-    .edBtn:hover{ background:rgba(255,255,255,.10); }
-
-    .edBtnDanger{
-      border-color:rgba(255,80,80,.25);
-    }
-    .edBtnDanger:hover{
-      background:rgba(255,80,80,.12);
-    }
-
     .edRow{ display:flex; gap:10px; }
     .edRow > *{ flex:1; }
 
@@ -88,10 +61,80 @@
       margin-top:10px;
     }
 
-    /* чтобы карта в редакторе была норм */
+    /* map */
     .zoneMap{ height:70vh; max-height:680px; }
     @media (max-width: 980px){
       .zoneMap{ height:60vh; }
+    }
+
+    /* icon toolbar */
+    .edBar{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      padding: 10px 0 2px;
+      flex-wrap:wrap;
+    }
+
+    .edIconBtn{
+      width:48px;
+      height:48px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.05);
+      cursor:pointer;
+      transition:all .18s ease;
+      color: rgba(255,255,255,.92);
+      position: relative;
+    }
+    .edIconBtn:hover{ background:rgba(255,255,255,.12); }
+    .edIconBtn:active{ transform: translateY(1px); }
+
+    .edIconBtn svg{
+      width:22px;
+      height:22px;
+      stroke:currentColor;
+      fill:none;
+    }
+    .edIconBtn svg .fill{ fill: currentColor; stroke: none; }
+
+    .edIconBtn.active{
+      background:rgba(80,200,120,.15);
+      border-color:rgba(80,200,120,.35);
+    }
+
+    .edIconBtn.edDanger:hover{
+      background:rgba(255,80,80,.15);
+      border-color:rgba(255,80,80,.25);
+    }
+
+    /* custom tooltip */
+    .tscTip{
+      position: fixed;
+      z-index: 1000000;
+      pointer-events:none;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(15,18,25,.78);
+      color: rgba(255,255,255,.92);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.2px;
+      transform: translateY(6px);
+      opacity: 0;
+      transition: opacity .12s ease, transform .12s ease;
+      max-width: 240px;
+      white-space: nowrap;
+    }
+    .tscTip.show{
+      opacity: 1;
+      transform: translateY(0);
     }
   </style>
 </head>
@@ -110,14 +153,51 @@
         <h1 class="siteTitle">Редактор зон</h1>
       </div>
 
-      <!-- Панель кнопок -->
+      <!-- Икон-панель -->
       <div class="edBar">
-        <button class="edBtn" id="drawBtn" type="button">+ Новый полигон</button>
-        <button class="edBtn" id="stopBtn" type="button">✓ Завершить</button>
-        <button class="edBtn" id="editBtn" type="button">✎ Вершины</button>
-        <button class="edBtn edBtnDanger" id="delBtn" type="button">🗑 Удалить</button>
-        <button class="edBtn" id="exportBtn" type="button">⇩ Экспорт GeoJSON</button>
-        <button class="edBtn edBtnDanger" id="resetLocalBtn" type="button">↺ Сброс локального</button>
+        <!-- drawBtn: плюс/галочка -->
+        <button class="edIconBtn" id="drawBtn" type="button" data-tip="Новый полигон / Завершить">
+          <svg id="drawIcon" viewBox="0 0 24 24" aria-hidden="true">
+            <!-- плюс -->
+            <path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+
+        <!-- edit vertices -->
+        <button class="edIconBtn" id="editBtn" type="button" data-tip="Редактировать вершины">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="fill" cx="6" cy="18" r="2"></circle>
+            <circle class="fill" cx="18" cy="18" r="2"></circle>
+            <circle class="fill" cx="12" cy="6" r="2"></circle>
+            <path d="M8 16 L12 8 L16 16 Z" stroke-width="1.5" />
+          </svg>
+        </button>
+
+        <!-- delete -->
+        <button class="edIconBtn edDanger" id="delBtn" type="button" data-tip="Удалить зону">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16" stroke-width="2" stroke-linecap="round"/>
+            <path d="M9 7v11M15 7v11" stroke-width="2" stroke-linecap="round"/>
+            <path d="M6 7l1-2h10l1 2" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+
+        <!-- export -->
+        <button class="edIconBtn" id="exportBtn" type="button" data-tip="Экспорт GeoJSON">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16h16V8z" stroke-width="2"/>
+            <path d="M14 2v6h6" stroke-width="2"/>
+            <text x="7" y="16" font-size="6" fill="currentColor">geo</text>
+          </svg>
+        </button>
+
+        <!-- reset local -->
+        <button class="edIconBtn edDanger" id="resetLocalBtn" type="button" data-tip="Сброс локального черновика">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 12a8 8 0 1 0 3-6" stroke-width="2"/>
+            <path d="M4 4v6h6" stroke-width="2"/>
+          </svg>
+        </button>
       </div>
     </div>
   </div>
@@ -142,6 +222,7 @@
       <div class="edLabel">Описание (props.description)</div>
       <textarea class="edTextarea" id="zoneDesc" placeholder="Текст условий доставки..."></textarea>
 
+      <!-- эти две кнопки не трогаем -->
       <div class="edRow" style="margin-top:10px;">
         <button class="edBtn" id="savePropsBtn" type="button">💾 Сохранить</button>
 
@@ -154,7 +235,8 @@
       <div class="edHint">
         <b>Как работать:</b><br/>
         • Клик по зоне — выбрать<br/>
-        • “Новый полигон” — ставь точки, двойной клик завершить<br/>
+        • ➕ Новый полигон: ставь точки, двойной клик завершить<br/>
+        • ✅ та же кнопка завершает рисование<br/>
         • “Вершины” — двигай точки<br/>
         • Экспорт — скачай файл и замени в репо:<br/>
         <span style="opacity:.8">zones/data/zones/zones_day.geojson</span><br/>
