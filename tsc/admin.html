@@ -68,11 +68,6 @@
           Добавить блюдо
         </button>
 
-        <button class="smallBtn" id="bulkBtn" type="button" title="Загрузить блюда из Excel">
-          <img src="/tsc/assets/icons/upload.svg" alt="upload" />
-          Excel
-        </button>
-
         <!-- Кнопки ниже в будущем можно вернуть. Сейчас скрываем по просьбе. -->
         <!-- <button class="smallBtn" id="exportBtn" type="button">Экспорт JSON</button> -->
         
@@ -211,45 +206,6 @@
   </div>
 </div>
   
-
-  <!-- BULK EXCEL MODAL -->
-  <div class="modalWrap" id="bulkWrap" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modalHead">
-        <h3>Импорт блюд из Excel</h3>
-        <button class="iconBtn" id="bulkClose" type="button" title="Закрыть">✕</button>
-      </div>
-
-      <div class="modalBody">
-        <div class="formGrid" style="grid-template-columns:1fr;">
-          <div class="field" style="grid-column:1/-1;">
-            <label>Шаблон Excel</label>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-              <a class="smallBtn" id="bulkDownload" href="/tsc/assets/templates/dishes_template.xlsx" download>
-                <img src="/tsc/assets/icons/download.svg" alt="download" />
-                Скачать шаблон
-              </a>
-              <small style="opacity:.65;">Заполните колонки: <b>delivery</b>, <b>category</b>, <b>name</b>, <b>description</b>.</small>
-            </div>
-          </div>
-
-          <div class="field" style="grid-column:1/-1;">
-            <label>Загрузить заполненный файл</label>
-            <input id="bulkFile" type="file" accept=".xlsx" />
-            <small style="opacity:.6;">Фото не загружаются — будет поставлена заглушка <code>placeholder.jpg</code>. Потом замените вручную.</small>
-          </div>
-
-          <div id="bulkResult" style="grid-column:1/-1;opacity:.9;"></div>
-        </div>
-      </div>
-
-      <div class="modalFoot">
-        <button class="smallBtn" id="bulkCancel" type="button">Отмена</button>
-        <button class="smallBtn primary" id="bulkImport" type="button" disabled>Импортировать</button>
-      </div>
-    </div>
-  </div>
-
 <button class="toTopBtn" id="toTopBtn" type="button" title="Наверх">
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
     <path d="M12 5l-6 6M12 5l6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -257,7 +213,6 @@
   </svg>
 </button>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="/tsc/js/admin.js"></script>
 </body>
 </html>
