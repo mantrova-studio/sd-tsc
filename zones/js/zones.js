@@ -1,7 +1,8 @@
 (function () {
   const qs = new URLSearchParams(location.search);
-  const mode = qs.get("mode");
+  const mode = qs.get("mode"); // "night" => ночь, иначе день
 
+  // относительный путь (работает и на Pages, и на домене)
   const GEOJSON_URL =
     mode === "night"
       ? "data/zones/zones_night.geojson"
@@ -11,12 +12,12 @@
   const addrInput = document.getElementById("addrInput");
   const clearAddr = document.getElementById("clearAddr");
   const zoneInfo = document.getElementById("zoneInfo");
+  const mapEl = document.getElementById("map");
 
   function showInfo(html) {
     zoneInfo.innerHTML = html;
     zoneInfo.style.display = "block";
   }
-
   function hideInfo() {
     zoneInfo.style.display = "none";
   }
@@ -26,14 +27,15 @@
     else location.href = "index.html";
   });
 
-  const mapEl = document.getElementById("map");
   if (!mapEl || !addrInput || !clearAddr || !zoneInfo) {
-    console.error("zones: не найден #map или элементы UI");
+    console.error("zones: не найден #map или элементы UI (проверь zones.html)");
     return;
   }
 
   let map;
   let placemark = null;
+
+  // geojson + polygons
   let zonesGeo = null;
   const polyById = new Map();
 
@@ -62,9 +64,7 @@
   }
 
   function resetHighlight() {
-    for (const poly of polyById.values()) {
-      poly.options.set(polygonStyleDefault());
-    }
+    for (const poly of polyById.values()) poly.options.set(polygonStyleDefault());
   }
 
   function showZone(props = {}) {
@@ -80,64 +80,76 @@
 
   function setPlacemark(lat, lon) {
     const coords = [lat, lon];
+    if (placemark) map.geoObjects.remove(placemark);
 
-    if (placemark) {
-      map.geoObjects.remove(placemark);
-    }
-
-    placemark = new ymaps.Placemark(coords, {}, {
-      preset: "islands#redDotIcon"
-    });
-
+    placemark = new ymaps.Placemark(coords, {}, { preset: "islands#redDotIcon" });
     map.geoObjects.add(placemark);
+
     map.setCenter(coords, Math.max(map.getZoom(), 14), { duration: 200 });
   }
 
   function findZoneForPoint(lat, lon) {
     if (!zonesGeo?.features?.length) return null;
-
     const pt = turf.point([lon, lat]);
 
     for (let i = 0; i < zonesGeo.features.length; i++) {
       const f = zonesGeo.features[i];
       const t = f?.geometry?.type;
       if (t !== "Polygon" && t !== "MultiPolygon") continue;
-
       try {
-        if (turf.booleanPointInPolygon(pt, f)) {
-          return { feature: f, index: i };
-        }
+        if (turf.booleanPointInPolygon(pt, f)) return { feature: f, index: i };
       } catch (e) {}
     }
-
     return null;
+  }
+
+  function applyPoint(lat, lon) {
+    setPlacemark(lat, lon);
+
+    const found = findZoneForPoint(lat, lon);
+    if (!found) {
+      showInfo(`<div><b>Адрес вне зон доставки</b></div>`);
+      resetHighlight();
+      return;
+    }
+
+    showZone(found.feature.properties || {});
+    resetHighlight();
+
+    const id = getFeatureId(found.feature, found.index);
+    for (const [k, poly] of polyById.entries()) {
+      if (k === id || k.startsWith(id + "_")) poly.options.set(polygonStyleActive());
+    }
   }
 
   async function loadZones() {
     try {
       const res = await fetch(GEOJSON_URL, { cache: "no-store" });
-
       if (!res.ok) {
-        showInfo(`<b>Не удалось загрузить зоны</b>`);
+        console.warn("zones: GeoJSON не найден:", GEOJSON_URL, res.status);
+        showInfo(`<b>Не удалось загрузить зоны</b><div class="muted">${GEOJSON_URL}</div>`);
         return;
       }
 
       zonesGeo = await res.json();
 
       const polys = (zonesGeo.features || []).filter(
-        f => f?.geometry?.type === "Polygon" || f?.geometry?.type === "MultiPolygon"
+        (f) => f?.geometry?.type === "Polygon" || f?.geometry?.type === "MultiPolygon"
       );
+
+      if (!polys.length) {
+        console.warn("zones: в GeoJSON нет полигонов");
+        showInfo(`<b>В файле зон нет полигонов</b>`);
+        return;
+      }
 
       polys.forEach((f, idx) => {
         const id = getFeatureId(f, idx);
         const g = f.geometry;
 
         if (g.type === "Polygon") {
-          const contours = g.coordinates.map(ring =>
-            ring.map(([lon, lat]) => [lat, lon])
-          );
-
-          const poly = new ymaps.Polygon(contours, {}, polygonStyleDefault());
+          const contours = g.coordinates.map((ring) => ring.map(([lon, lat]) => [lat, lon]));
+          const poly = new ymaps.Polygon(contours, { __featureId: id }, polygonStyleDefault());
 
           poly.events.add("click", () => {
             resetHighlight();
@@ -147,22 +159,39 @@
 
           map.geoObjects.add(poly);
           polyById.set(id, poly);
+          return;
         }
 
         if (g.type === "MultiPolygon") {
           g.coordinates.forEach((polyCoords, mIdx) => {
-            const mpId = `${id}_${mIdx}`;
-            const rings = polyCoords.map(ring =>
-              ring.map(([lon, lat]) => [lat, lon])
-            );
-
-            const poly = new ymaps.Polygon(rings, {}, polygonStyleDefault());
+            const mpId = `${id}_m${mIdx}`;
+            const rings = polyCoords.map((ring) => ring.map(([lon, lat]) => [lat, lon]));
+            const poly = new ymaps.Polygon(rings, { __featureId: id }, polygonStyleDefault());
 
             poly.events.add("click", () => {
-  function initSearch() {
-  clearAddr.style.display = "none";
+              resetHighlight();
+              poly.options.set(polygonStyleActive());
+              showZone(f.properties || {});
+            });
 
-  // --- наш dropdown ---
+            map.geoObjects.add(poly);
+            polyById.set(mpId, poly);
+          });
+        }
+      });
+
+      const bounds = map.geoObjects.getBounds();
+      if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 20 });
+    } catch (e) {
+      console.error("zones: ошибка загрузки GeoJSON", e);
+      showInfo(`<b>Ошибка загрузки зон</b>`);
+    }
+  }
+
+  // =========================================================
+  // ПОИСК: выпадающие подсказки (свои) на геокодере Яндекса
+  // =========================================================
+
   let dd = null;
 
   function escapeHtml(s) {
@@ -241,18 +270,7 @@
       row.addEventListener("click", () => {
         addrInput.value = it.title;
         hideDd();
-        // используем координаты из результата (без второго запроса)
-        setPlacemark(it.lat, it.lon);
-
-        const found = findZoneForPoint(it.lat, it.lon);
-        if (!found) {
-          showInfo(`<b>Адрес вне зон доставки</b>`);
-          resetHighlight();
-          return;
-        }
-
-        showZone(found.feature.properties || {});
-        resetHighlight();
+        applyPoint(it.lat, it.lon);
       });
 
       box.appendChild(row);
@@ -261,169 +279,143 @@
     box.style.display = items.length ? "block" : "none";
   }
 
-  // --- очистка ---
-  clearAddr.addEventListener("click", () => {
-    addrInput.value = "";
-    clearAddr.style.display = "none";
-    hideInfo();
-    hideDd();
-    resetHighlight();
-    if (placemark) map.geoObjects.remove(placemark);
-    placemark = null;
-  });
-
-  addrInput.addEventListener("input", () => {
-    clearAddr.style.display = addrInput.value.trim() ? "block" : "none";
-  });
-
-  // закрыть dropdown при клике вне
-  document.addEventListener("click", (e) => {
-    if (e.target === addrInput) return;
-    if (dd && dd.contains(e.target)) return;
-    hideDd();
-  });
-
-  window.addEventListener("resize", () => {
-    if (dd && dd.style.display === "block") positionDd();
-  });
-
-  // --- подсказки через geocode ---
-  let t = null;
-  let reqId = 0;
-
-  addrInput.addEventListener("input", () => {
-    const q = addrInput.value.trim();
-
-    hideInfo();
-    resetHighlight();
-
-    if (!q) {
-      hideDd();
-      return;
-    }
-
-    // чтобы не спамить запросами на 1-2 буквы
-    if (q.length < 3) {
-      hideDd();
-      return;
-    }
-
-    if (t) clearTimeout(t);
-    t = setTimeout(() => {
-      const my = ++reqId;
-
-      // фиксируем регион, чтобы не улетать в другие города
-      const searchQuery = q + ", Оренбургский район";
-
-      ymaps.geocode(searchQuery, { results: 7 })
-        .then((res) => {
-          if (my !== reqId) return;
-
-          const items = [];
-          res.geoObjects.each((obj) => {
-            const [lat, lon] = obj.geometry.getCoordinates();
-            const name = obj.getAddressLine ? obj.getAddressLine() : obj.properties.get("text");
-            const caption = obj.properties.get("name") || "";
-            const desc = obj.properties.get("description") || "";
-
-            // title = покороче, sub = уточнение
-            const title = caption || name || "";
-            const sub = desc || name || "";
-
-            if (title) {
-              items.push({ title, sub, lat, lon });
-            }
-          });
-
-          // иногда геокодер вернёт дубликаты — уберём по title
-          const seen = new Set();
-          const uniq = items.filter((it) => {
-            const k = it.title.toLowerCase();
-            if (seen.has(k)) return false;
-            seen.add(k);
-            return true;
-          });
-
-          renderDd(uniq);
-        })
-        .catch(() => {
-          hideDd();
-        });
-    }, 250);
-  });
-
-  // Enter — ищем первый результат
-  addrInput.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter") return;
-    e.preventDefault();
-
-    const q = addrInput.value.trim();
-    if (!q) return;
-
-    const searchQuery = q + ", Оренбургский район";
-
-    ymaps.geocode(searchQuery, { results: 1 })
-      .then((res) => {
-        const obj = res.geoObjects.get(0);
-        if (!obj) {
-          showInfo(`<b>Адрес не найден</b>`);
-          return;
-        }
-        const [lat, lon] = obj.geometry.getCoordinates();
-        setPlacemark(lat, lon);
-
-        const found = findZoneForPoint(lat, lon);
-        if (!found) {
-          showInfo(`<b>Адрес вне зон доставки</b>`);
-          resetHighlight();
-          return;
-        }
-
-        showZone(found.feature.properties || {});
-        resetHighlight();
-      })
-      .catch(() => {
-        showInfo(`<b>Ошибка поиска</b>`);
-      });
-
-    hideDd();
-  });
-  }            resetHighlight();
-              poly.options.set(polygonStyleActive());
-              showZone(f.properties || {});
-            });
-
-            map.geoObjects.add(poly);
-            polyById.set(mpId, poly);
-          });
-        }
-      });
-
-      const bounds = map.geoObjects.getBounds();
-      if (bounds) {
-        map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 20 });
-      }
-
-    } catch (e) {
-      showInfo(`<b>Ошибка загрузки зон</b>`);
-    }
+  function shortAddressLine(line) {
+    if (!line) return "";
+    // часто приходит "Россия, Оренбург, улица ..., дом ..."
+    // оставим без "Россия,"
+    return String(line).replace(/^Россия,\s*/i, "");
   }
 
-  // =========================================
-  // 🔥 ПОИСК ЧЕРЕЗ ЯНДЕКС
-  // =========================================
+  function initSearch() {
+    clearAddr.style.display = "none";
 
-  
+    clearAddr.addEventListener("click", () => {
+      addrInput.value = "";
+      clearAddr.style.display = "none";
+      hideInfo();
+      hideDd();
+      resetHighlight();
+      if (placemark) map.geoObjects.remove(placemark);
+      placemark = null;
+    });
+
+    document.addEventListener("click", (e) => {
+      if (e.target === addrInput) return;
+      if (dd && dd.contains(e.target)) return;
+      hideDd();
+    });
+
+    window.addEventListener("resize", () => {
+      if (dd && dd.style.display === "block") positionDd();
+    });
+
+    let t = null;
+    let reqId = 0;
+
+    addrInput.addEventListener("input", () => {
+      const q = addrInput.value.trim();
+      clearAddr.style.display = q ? "block" : "none";
+
+      hideInfo();
+      resetHighlight();
+
+      if (!q) {
+        hideDd();
+        return;
+      }
+
+      if (q.length < 3) {
+        hideDd();
+        return;
+      }
+
+      if (t) clearTimeout(t);
+      t = setTimeout(() => {
+        const my = ++reqId;
+
+        const searchQuery = q + ", Оренбургский район";
+
+        ymaps.geocode(searchQuery, { results: 7 })
+          .then((res) => {
+            if (my !== reqId) return;
+
+            const items = [];
+            res.geoObjects.each((obj) => {
+              const coords = obj.geometry?.getCoordinates?.();
+              if (!coords) return;
+
+              const [lat, lon] = coords;
+
+              const line = shortAddressLine(
+                (obj.getAddressLine && obj.getAddressLine()) ||
+                obj.properties?.get?.("text") ||
+                obj.properties?.get?.("name") ||
+                ""
+              );
+
+              // name/description иногда дают красивое краткое представление
+              const name = obj.properties?.get?.("name") || "";
+              const desc = obj.properties?.get?.("description") || "";
+
+              const title = shortAddressLine(name || line || "");
+              const sub = shortAddressLine(desc || line || "");
+
+              if (title) items.push({ title, sub, lat, lon });
+            });
+
+            // убираем дубли
+            const seen = new Set();
+            const uniq = items.filter((it) => {
+              const k = it.title.toLowerCase();
+              if (seen.has(k)) return false;
+              seen.add(k);
+              return true;
+            });
+
+            renderDd(uniq);
+          })
+          .catch(() => {
+            hideDd();
+          });
+      }, 250);
+    });
+
+    // Enter -> первый результат
+    addrInput.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+
+      const q = addrInput.value.trim();
+      if (!q) return;
+
+      hideDd();
+
+      const searchQuery = q + ", Оренбургский район";
+
+      ymaps.geocode(searchQuery, { results: 1 })
+        .then((res) => {
+          const obj = res.geoObjects.get(0);
+          if (!obj) {
+            showInfo(`<b>Адрес не найден</b>`);
+            return;
+          }
+          const [lat, lon] = obj.geometry.getCoordinates();
+          applyPoint(lat, lon);
+        })
+        .catch(() => {
+          showInfo(`<b>Ошибка поиска</b>`);
+        });
+    });
+  }
 
   ymaps.ready(async () => {
     map = new ymaps.Map("map", {
-      center: [51.7682, 55.0968],
+      center: [51.7682, 55.0968], // Оренбург
       zoom: 11,
-      controls: ["zoomControl", "searchControl"],
+      controls: ["zoomControl"],
     });
 
     initSearch();
     await loadZones();
   });
-
 })();
