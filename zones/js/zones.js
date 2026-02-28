@@ -185,68 +185,182 @@
   // =========================================
 
   function initSearch() {
+  clearAddr.style.display = "none";
 
-    clearAddr.style.display = "none";
+  // --- TSC dropdown (как раньше, только данные из Яндекса) ---
+  let suggestBox = null;
 
-    // автоподсказки Яндекса
-    new ymaps.SuggestView("addrInput", {
-      results: 7
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function ensureSuggestBox() {
+    if (suggestBox) return suggestBox;
+
+    suggestBox = document.createElement("div");
+    suggestBox.style.position = "absolute";
+    suggestBox.style.zIndex = "999999";
+    suggestBox.style.background = "rgba(15,18,25,0.92)";
+    suggestBox.style.border = "1px solid rgba(255,255,255,0.08)";
+    suggestBox.style.borderRadius = "12px";
+    suggestBox.style.backdropFilter = "blur(10px)";
+    suggestBox.style.padding = "6px";
+    suggestBox.style.display = "none";
+    suggestBox.style.maxHeight = "260px";
+    suggestBox.style.overflow = "auto";
+    suggestBox.style.boxShadow = "0 10px 30px rgba(0,0,0,0.35)";
+    document.body.appendChild(suggestBox);
+    return suggestBox;
+  }
+
+  function positionSuggestBox() {
+    const box = ensureSuggestBox();
+    const r = addrInput.getBoundingClientRect();
+    box.style.left = Math.round(r.left + window.scrollX) + "px";
+    box.style.top = Math.round(r.bottom + window.scrollY + 8) + "px";
+    box.style.width = Math.round(r.width) + "px";
+  }
+
+  function hideSuggestBox() {
+    if (!suggestBox) return;
+    suggestBox.style.display = "none";
+    suggestBox.innerHTML = "";
+  }
+
+  function renderSuggest(items) {
+    const box = ensureSuggestBox();
+    positionSuggestBox();
+    box.innerHTML = "";
+
+    items.forEach((text) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.style.width = "100%";
+      row.style.textAlign = "left";
+      row.style.border = "0";
+      row.style.cursor = "pointer";
+      row.style.background = "transparent";
+      row.style.color = "rgba(255,255,255,0.92)";
+      row.style.padding = "10px 10px";
+      row.style.borderRadius = "10px";
+      row.style.fontSize = "14px";
+      row.style.lineHeight = "1.35";
+
+      row.addEventListener("mouseenter", () => {
+        row.style.background = "rgba(255,255,255,0.06)";
+      });
+      row.addEventListener("mouseleave", () => {
+        row.style.background = "transparent";
+      });
+
+      row.innerHTML = `<div style="font-weight:600;">${escapeHtml(text)}</div>`;
+
+      row.addEventListener("click", () => {
+        addrInput.value = text;
+        hideSuggestBox();
+        runGeocode(text);
+      });
+
+      box.appendChild(row);
     });
 
-    clearAddr.addEventListener("click", () => {
-      addrInput.value = "";
-      clearAddr.style.display = "none";
-      hideInfo();
-      resetHighlight();
-      if (placemark) map.geoObjects.remove(placemark);
-      placemark = null;
-    });
+    box.style.display = items.length ? "block" : "none";
+  }
 
-    addrInput.addEventListener("input", () => {
-      clearAddr.style.display = addrInput.value.trim() ? "block" : "none";
-    });
+  function runGeocode(q) {
+    const searchQuery = q + ", Оренбургский район";
 
-    addrInput.addEventListener("keydown", function (e) {
+    ymaps.geocode(searchQuery, { results: 1 })
+      .then((res) => {
+        const obj = res.geoObjects.get(0);
+        if (!obj) {
+          showInfo(`<b>Адрес не найден</b>`);
+          return;
+        }
 
-      if (e.key !== "Enter") return;
-      e.preventDefault();
+        const [lat, lon] = obj.geometry.getCoordinates();
+        setPlacemark(lat, lon);
 
-      const q = addrInput.value.trim();
-      if (!q) return;
-
-      const searchQuery = q + ", Оренбургский район";
-
-      ymaps.geocode(searchQuery, { results: 1 })
-        .then(function (res) {
-
-          const obj = res.geoObjects.get(0);
-
-          if (!obj) {
-            showInfo(`<b>Адрес не найден</b>`);
-            return;
-          }
-
-          const coords = obj.geometry.getCoordinates();
-          const [lat, lon] = coords;
-
-          setPlacemark(lat, lon);
-
-          const found = findZoneForPoint(lat, lon);
-
-          if (!found) {
-            showInfo(`<b>Адрес вне зон доставки</b>`);
-            resetHighlight();
-            return;
-          }
-
-          showZone(found.feature.properties || {});
+        const found = findZoneForPoint(lat, lon);
+        if (!found) {
+          showInfo(`<b>Адрес вне зон доставки</b>`);
           resetHighlight();
+          return;
+        }
 
-        })
-        .catch(function () {
-          showInfo(`<b>Ошибка поиска</b>`);
-        });
-    });
+        showZone(found.feature.properties || {});
+        resetHighlight();
+      })
+      .catch(() => {
+        showInfo(`<b>Ошибка поиска</b>`);
+      });
+  }
+
+  // --- UI events ---
+  clearAddr.addEventListener("click", () => {
+    addrInput.value = "";
+    clearAddr.style.display = "none";
+    hideInfo();
+    hideSuggestBox();
+    resetHighlight();
+    if (placemark) map.geoObjects.remove(placemark);
+    placemark = null;
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target === addrInput) return;
+    if (suggestBox && suggestBox.contains(e.target)) return;
+    hideSuggestBox();
+  });
+
+  window.addEventListener("resize", () => {
+    if (suggestBox && suggestBox.style.display === "block") positionSuggestBox();
+  });
+
+  // debounce suggest
+  let t = null;
+  let reqId = 0;
+
+  addrInput.addEventListener("input", () => {
+    const q = addrInput.value.trim();
+    clearAddr.style.display = q ? "block" : "none";
+    hideInfo();
+    resetHighlight();
+
+    if (!q) { hideSuggestBox(); return; }
+
+    if (t) clearTimeout(t);
+    t = setTimeout(async () => {
+      const my = ++reqId;
+
+      try {
+        // Важно: подсказки именно от Яндекса
+        const list = await ymaps.suggest(q, { results: 7 });
+        if (my !== reqId) return;
+
+        // list: массив строк
+        renderSuggest((list || []).map(x => String(x)));
+      } catch (e) {
+        hideSuggestBox();
+      }
+    }, 150);
+  });
+
+  // Enter — обычный поиск
+  addrInput.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const q = addrInput.value.trim();
+    if (!q) return;
+    hideSuggestBox();
+    runGeocode(q);
+  });
+  }
   }
 
   ymaps.ready(async () => {
