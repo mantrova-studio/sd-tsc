@@ -361,7 +361,6 @@
     runGeocode(q);
   });
   }
-  }
 
   ymaps.ready(async () => {
     map = new ymaps.Map("map", {
