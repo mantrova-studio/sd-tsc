@@ -17,6 +17,13 @@
           <img src="assets/icons/back.svg" alt="back" />
           <span>Назад</span>
         </button>
+
+<button class="lockBtn" id="editorBtn" type="button" title="Редактор зон">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/>
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </button>
       </div>
 
       <div class="headerRow" style="padding-top:0;">
@@ -44,6 +51,15 @@
   <!-- Turf для проверки попадания точки -->
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
   
+<script>
+  const editorBtn = document.getElementById("editorBtn");
+  if (editorBtn) {
+    editorBtn.addEventListener("click", () => {
+      window.location.href = "editor.html?edit=1";
+    });
+  }
+</script>
+
   <!-- относительный путь -->
   <script src="js/zones.js"></script>
 </body>
