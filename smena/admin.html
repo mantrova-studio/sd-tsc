@@ -14,26 +14,22 @@
         <div class="brandDot"></div>
         <div>
           <div class="brandTitle">SD • TSC — АДМИНКА</div>
-          <div class="brandSub" id="lockedState">Доступ: —</div>
+          <div class="brandSub">
+            <span id="lockedState">Доступ: —</span>
+            <span style="opacity:.7"> • </span>
+            <span id="tokenStateTop">Token: —</span>
+          </div>
         </div>
       </div>
 
       <div class="actions">
         <a class="iconBtn" href="./index.html" title="На сайт">← Сайт</a>
 
-        <button class="iconBtn" id="searchBtn" type="button" title="Поиск по сменам">
-          🔎 Поиск
-        </button>
+        <button class="iconBtn" id="searchBtn" type="button" title="Поиск по сменам">🔎 Поиск</button>
+        <button class="iconBtn" id="employeesBtn" type="button" title="Сотрудники">👤 Сотрудники</button>
+        <button class="iconBtn" id="templatesBtn" type="button" title="Шаблоны времени">⏱ Шаблоны</button>
 
-        <button class="iconBtn" id="employeesBtn" type="button" title="Сотрудники">
-          👤 Сотрудники
-        </button>
-
-        <button class="iconBtn" id="templatesBtn" type="button" title="Шаблоны времени">
-          ⏱ Шаблоны
-        </button>
-
-        <button class="iconBtn" id="settingsBtn" type="button" title="Настройки">
+        <button class="iconBtn" id="settingsBtn" type="button" title="Token">
           <img src="./assets/icons/gear.svg" alt="">
           Token
         </button>
@@ -68,9 +64,6 @@
 
             <div class="monthLabel">
               <div id="monthLabel">—</div>
-              <small>
-                <span id="repoValue">—</span> • <span id="tokenState">—</span>
-              </small>
             </div>
 
             <button class="monthBtn" id="nextMonth" type="button" title="Следующий месяц">
@@ -102,7 +95,7 @@
     </div>
   </div>
 
-  <!-- Auth Modal -->
+  <!-- Auth -->
   <div class="modal" id="authModal">
     <div class="modalCard">
       <div class="modalHeader">
@@ -118,7 +111,7 @@
             <div class="label">Пароль</div>
             <input class="input" id="passInput" type="password" placeholder="••••••••" autocomplete="current-password" />
           </div>
-          <div style="display:flex; gap:10px; justify-content:flex-end">
+          <div class="rightActions">
             <button class="btn primary" id="loginBtn" type="button">Войти</button>
           </div>
           <div class="note">
@@ -130,7 +123,7 @@
     </div>
   </div>
 
-  <!-- Settings Modal (TOKEN ONLY) -->
+  <!-- Token settings -->
   <div class="modal" id="settingsModal">
     <div class="modalCard">
       <div class="modalHeader">
@@ -147,20 +140,20 @@
             <input class="input" id="tokenInput" placeholder="ghp_..." />
           </div>
 
-          <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
-            <button class="btn" type="button" onclick="localStorage.removeItem('smena_gh_token'); alert('Token очищен на этом устройстве'); location.reload();">Очистить token</button>
+          <div class="rightActions">
+            <button class="btn" type="button" id="clearTokenBtn">Очистить</button>
             <button class="btn primary" id="saveSettingsBtn" type="button">Сохранить</button>
           </div>
 
           <div class="note">
-            Репозиторий зафиксирован в проекте. Права токена: <b>repo</b> (или <b>contents:write</b> в fine-grained).
+            Репозиторий фиксированный: <b>mantrova-studio/sd-tsc</b>. Права token: <b>repo</b> или <b>contents:write</b>.
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Employees Modal -->
+  <!-- Employees -->
   <div class="modal" id="employeesModal">
     <div class="modalCard">
       <div class="modalHeader">
@@ -177,11 +170,11 @@
         <div class="row2">
           <div class="field">
             <div class="label">Поиск</div>
-            <input class="input" id="empSearch" placeholder="Имя, роль…" />
+            <input class="input" id="empSearch" placeholder="Имя, роль, телефон…" />
           </div>
           <div class="field">
             <div class="label">Действия</div>
-            <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
+            <div class="rightActions">
               <button class="btn" id="addEmpBtn" type="button">+ Новый</button>
               <button class="btn primary" id="applyEmpBtn" type="button">Применить</button>
             </div>
@@ -198,7 +191,7 @@
     </div>
   </div>
 
-  <!-- Templates Modal -->
+  <!-- Templates -->
   <div class="modal" id="templatesModal">
     <div class="modalCard">
       <div class="modalHeader">
@@ -209,22 +202,18 @@
         <button class="modalClose" type="button">✕</button>
       </div>
       <div class="modalBody">
-        <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
+        <div class="rightActions">
           <button class="btn" id="addTplBtn" type="button">+ Новый</button>
           <button class="btn primary" id="applyTplBtn" type="button">Применить</button>
         </div>
 
         <div class="hr"></div>
         <div class="list" id="tplList"></div>
-
-        <div class="note">
-          “Применить” фиксирует изменения. Затем нажми “Сохранить в GitHub”.
-        </div>
       </div>
     </div>
   </div>
 
-  <!-- Search Modal -->
+  <!-- Search -->
   <div class="modal" id="searchModal">
     <div class="modalCard">
       <div class="modalHeader">
@@ -249,7 +238,7 @@
     </div>
   </div>
 
-  <!-- Edit Day Modal -->
+  <!-- Edit day -->
   <div class="modal" id="editModal">
     <div class="modalCard">
       <div class="modalHeader">
@@ -275,7 +264,7 @@
             </div>
           </div>
 
-          <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
+          <div class="rightActions">
             <button class="btn small" id="addShiftBtn" type="button">Добавить пустую</button>
             <button class="btn small primary" id="quickAddBtn" type="button">Быстро добавить</button>
             <button class="btn small primary" id="applyDayBtn" type="button">Применить день</button>
@@ -287,6 +276,8 @@
       </div>
     </div>
   </div>
+
+  <div class="toastWrap" id="toasts"></div>
 
   <script type="module" src="./js/admin.js"></script>
 </body>
