@@ -1,19 +1,18 @@
 {
   "meta": {
-    "version": 1,
-    "updatedAt": "2026-02-27T00:00:00Z"
+    "updatedAt": "2026-03-01T00:00:00.000Z"
   },
   "employees": [
-    { "id": "e1", "name": "Иванов Илья", "dept": "delivery", "role": "Курьер" },
-    { "id": "e2", "name": "Петрова Анна", "dept": "kitchen", "role": "Повар" },
-    { "id": "e3", "name": "Сидоров Максим", "dept": "call", "role": "Оператор" }
+    { "id": "e1", "name": "Иванов Илья", "dept": "delivery", "role": "Курьер", "phone": "+79990000000" },
+    { "id": "e2", "name": "Петрова Анна", "dept": "kitchen", "role": "Повар", "phone": "+79990000001" }
+  ],
+  "templates": [
+    { "id": "tpl1", "label": "День 10–18", "from": "10:00", "to": "18:00" },
+    { "id": "tpl2", "label": "Офис 09–17", "from": "09:00", "to": "17:00" }
   ],
   "days": {
-    "2026-02-27": [
+    "2026-03-01": [
       { "employeeId": "e1", "dept": "delivery", "role": "Курьер", "from": "10:00", "to": "18:00", "note": "" },
-      { "employeeId": "e3", "dept": "call", "role": "Оператор", "from": "09:00", "to": "17:00", "note": "Замена" }
-    ],
-    "2026-02-28": [
       { "employeeId": "e2", "dept": "kitchen", "role": "Повар", "from": "12:00", "to": "20:00", "note": "" }
     ]
   }
