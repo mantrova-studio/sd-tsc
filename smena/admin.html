@@ -35,7 +35,7 @@
 
         <button class="iconBtn" id="settingsBtn" type="button" title="Настройки">
           <img src="./assets/icons/gear.svg" alt="">
-          Настройки
+          Token
         </button>
 
         <button class="iconBtn" id="authBtn" type="button" title="Вход">
@@ -48,7 +48,6 @@
 
   <div class="container">
 
-    <!-- Dept filter for calendar/shifts -->
     <div class="pillRow" id="deptRow"></div>
 
     <div class="grid">
@@ -131,22 +130,18 @@
     </div>
   </div>
 
-  <!-- Settings Modal -->
+  <!-- Settings Modal (TOKEN ONLY) -->
   <div class="modal" id="settingsModal">
     <div class="modalCard">
       <div class="modalHeader">
         <div class="left">
-          <div class="t">Настройки GitHub</div>
-          <div class="s">Token хранится только на этом устройстве (localStorage)</div>
+          <div class="t">GitHub token</div>
+          <div class="s">Нужен только для “Сохранить в GitHub”</div>
         </div>
         <button class="modalClose" type="button">✕</button>
       </div>
       <div class="modalBody">
         <div class="formGrid">
-          <div class="field">
-            <div class="label">Репозиторий (owner/repo)</div>
-            <input class="input" id="repoInput" placeholder="mantrova-studio/sd-tsc" />
-          </div>
           <div class="field">
             <div class="label">GitHub token (PAT)</div>
             <input class="input" id="tokenInput" placeholder="ghp_..." />
@@ -158,7 +153,7 @@
           </div>
 
           <div class="note">
-            Права токена: достаточно <b>repo</b> (или <b>contents:write</b> в fine-grained) для записи в репозиторий.
+            Репозиторий зафиксирован в проекте. Права токена: <b>repo</b> (или <b>contents:write</b> в fine-grained).
           </div>
         </div>
       </div>
@@ -197,7 +192,7 @@
         <div class="list" id="empList"></div>
 
         <div class="note">
-          “Применить” сохраняет изменения в текущих данных. Затем нажми “Сохранить в GitHub”.
+          “Применить” фиксирует изменения. Затем нажми “Сохранить в GitHub”.
         </div>
       </div>
     </div>
@@ -209,7 +204,7 @@
       <div class="modalHeader">
         <div class="left">
           <div class="t">Шаблоны времени</div>
-          <div class="s">Только название + время (для применения к разным сотрудникам)</div>
+          <div class="s">Только название + время</div>
         </div>
         <button class="modalClose" type="button">✕</button>
       </div>
@@ -223,7 +218,7 @@
         <div class="list" id="tplList"></div>
 
         <div class="note">
-          “Применить” сохраняет изменения в текущих данных. Затем нажми “Сохранить в GitHub”.
+          “Применить” фиксирует изменения. Затем нажми “Сохранить в GitHub”.
         </div>
       </div>
     </div>
