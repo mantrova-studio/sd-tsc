@@ -870,3 +870,31 @@ input[type="search"]::-webkit-search-decoration{
   width:22px;
   height:22px;
 }
+
+/* ===== Custom tooltip (tsc) ===== */
+.tscTip{
+  position: fixed;
+  z-index: 999999;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(10,10,18,.72);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 60px rgba(0,0,0,.55);
+  color: rgba(255,255,255,.92);
+  font-size: 12px;
+  line-height: 1.25;
+  pointer-events: none;
+  transform: translateY(6px);
+  opacity: 0;
+  transition: opacity .12s ease, transform .12s ease;
+}
+
+.tscTip[data-show="1"]{
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tscTip .tt{ font-weight: 800; letter-spacing:.02em; }
+.tscTip .ts{ margin-top: 4px; color: rgba(255,255,255,.65); }
