@@ -56,19 +56,42 @@ function renderWeekdays(){
 function getDayAllShifts(iso){
   return sortShifts(state.data?.days?.[iso] || []);
 }
-
 function getDayShiftsFiltered(iso){
   const all = getDayAllShifts(iso);
   if(state.dept === "all") return all;
   return all.filter(s => s.dept === state.dept);
 }
-
 function hasAnyShifts(iso){
   return getDayShiftsFiltered(iso).length > 0;
 }
 
+function getEmployeeName(employeeId){
+  const emp = (state.data?.employees || []).find(e => e.id === employeeId);
+  return emp?.name || employeeId || "Сотрудник";
+}
+
 function renderHeader(){
   qs("#monthLabel").textContent = monthTitle(state.viewY, state.viewM0);
+}
+
+function buildNamesHTML(iso){
+  const shifts = getDayShiftsFiltered(iso);
+  if(shifts.length === 0){
+    return `<div class="dayNames"><div class="dayName muted">—</div></div>`;
+  }
+
+  // имена без дублей (если один сотрудник стоит несколько смен)
+  const names = [];
+  const seen = new Set();
+  for(const s of shifts){
+    const n = getEmployeeName(s.employeeId);
+    if(seen.has(n)) continue;
+    seen.add(n);
+    names.push(n);
+  }
+
+  const items = names.map(n => `<div class="dayName">${escapeHtml(n)}</div>`).join("");
+  return `<div class="dayNames">${items}</div>`;
 }
 
 function renderCalendar(){
@@ -117,7 +140,15 @@ function renderCalendar(){
     el.dataset.today = (iso === today ? "1" : "0");
     el.dataset.selected = (selected && iso === selected ? "1" : "0");
     el.dataset.has = hasAnyShifts(iso) ? "1" : "0";
-    el.innerHTML = `<div class="dayNum">${cD}</div><div class="dot"></div>`;
+
+    el.innerHTML = `
+      <div class="dayTop">
+        <div class="dayNum">${cD}</div>
+        <div class="dot"></div>
+      </div>
+      ${buildNamesHTML(iso)}
+    `;
+
     daysWrap.appendChild(el);
   }
 }
@@ -163,6 +194,7 @@ function bindNav(){
 
 function bindCalendarClicks(){
   qs("#days").addEventListener("click", (e)=>{
+    // если кликнули по внутреннему скроллу списка, всё равно открываем день
     const btn = e.target.closest(".day");
     if(!btn) return;
     state.selectedISO = btn.dataset.iso;
@@ -204,13 +236,13 @@ function openDay(iso){
     row.innerHTML = `
       <div style="flex:1">
         <div class="shiftMain">
-          <div class="name">${name}</div>
-          <div class="meta">${time}${role ? " • " + role : ""}${s.note ? " • " + s.note : ""}</div>
+          <div class="name">${escapeHtml(name)}</div>
+          <div class="meta">${escapeHtml(time)}${role ? " • " + escapeHtml(role) : ""}${s.note ? " • " + escapeHtml(s.note) : ""}</div>
         </div>
       </div>
 
       ${phone ? `
-        <button class="phoneBtn" type="button" data-phone="${phone}" title="Позвонить">
+        <button class="phoneBtn" type="button" data-phone="${escapeAttr(phone)}" title="Позвонить">
           <img src="./assets/icons/phone.svg" alt="">
         </button>
       ` : ""}
@@ -225,6 +257,7 @@ function bindPhoneClicks(){
   document.addEventListener("click", (e)=>{
     const b = e.target.closest(".phoneBtn");
     if(!b) return;
+
     const phone = b.dataset.phone;
     if(!phone) return;
 
@@ -241,6 +274,15 @@ async function loadData(){
   const res = await fetch(`${FILE_LOCAL}?ts=${Date.now()}`);
   if(!res.ok) throw new Error("Не удалось загрузить shifts.json");
   return await res.json();
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
+function escapeAttr(s){
+  return String(s).replace(/"/g, "&quot;");
 }
 
 async function init(){
