@@ -48,7 +48,7 @@
 
   <div class="container">
 
-    <!-- Dept filter (admin) -->
+    <!-- Dept filter for calendar -->
     <div class="pillRow" id="deptRow"></div>
 
     <div class="grid">
@@ -94,9 +94,8 @@
 
         <div class="footerHint">
           <div class="note">
-            • Фильтр сверху влияет на точки “есть смены” в календаре.<br/>
-            • Редактор дня показывает все смены дня (безопасно, чтобы не перетереть другие отделы).<br/>
-            • Если несколько админов правят одновременно — сначала нажми “Обновить”.
+            • Фильтр сверху влияет на точки “есть смены” и на то, какие смены откроются в редакторе дня.<br/>
+            • Фильтр сотрудников задаётся отдельно (внутри модалки сотрудников/редактора смен).
           </div>
           <div>© POLIHOV DEV STUDIO</div>
         </div>
@@ -172,11 +171,15 @@
       <div class="modalHeader">
         <div class="left">
           <div class="t">Сотрудники</div>
-          <div class="s">Список используется в селектах смен</div>
+          <div class="s">Фильтр помогает быстро находить нужный отдел</div>
         </div>
         <button class="modalClose" type="button">✕</button>
       </div>
       <div class="modalBody">
+
+        <!-- EMP DEPT FILTER -->
+        <div class="pillRow" id="empDeptRow"></div>
+
         <div class="row2">
           <div class="field">
             <div class="label">Поиск</div>
@@ -192,7 +195,7 @@
         <div class="list" id="empList"></div>
 
         <div class="note">
-          Удаление блокируется, если сотрудник уже стоит в сменах (чтобы не потерять данные).
+          Удаление блокируется, если сотрудник уже стоит в сменах.
         </div>
       </div>
     </div>
@@ -215,10 +218,6 @@
 
         <div class="hr"></div>
         <div class="list" id="tplList"></div>
-
-        <div class="note">
-          Шаблон — это “время + отдел + роль + заметка”. Сотрудника выбираешь при добавлении смены.
-        </div>
       </div>
     </div>
   </div>
@@ -263,6 +262,9 @@
       </div>
       <div class="modalBody">
 
+        <!-- EMP DEPT FILTER (for selects) -->
+        <div class="pillRow" id="empDeptRow2"></div>
+
         <div class="formGrid">
           <div class="row2">
             <div class="field">
@@ -283,7 +285,6 @@
         </div>
 
         <div class="hr"></div>
-
         <div class="list" id="editList"></div>
 
         <div class="hr"></div>
