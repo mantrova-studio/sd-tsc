@@ -1,9 +1,12 @@
 import { WEEKDAYS, MONTHS_RU, toISODate, todayISO, formatDateLong, sortShifts, sha256Hex } from "./util.js";
 import { qs, qsa, toast, openModal, closeModal, bindModalClose } from "./ui.js";
-import { getToken, setToken, getRepo, setRepo, isAdmin, setAdmin } from "./storage.js";
+import { getToken, setToken, isAdmin, setAdmin } from "./storage.js";
 import { ghGetJsonFile, ghPutJsonFile } from "./github.js";
 
 const FILE_PATH = "smena/data/shifts.json";
+
+// ✅ фиксированный репозиторий (админу не нужно вводить)
+const REPO_FULL = "mantrova-studio/sd-tsc";
 
 const ADMIN_PASSWORD_SHA256 =
   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"; // пустой пароль
@@ -16,8 +19,8 @@ const DEPTS = [
 ];
 
 const state = {
-  dept: "all",      // фильтр смен/календаря
-  empDept: "all",   // фильтр списка сотрудников/селектов
+  dept: "all",
+  empDept: "all",
 
   viewY: new Date().getFullYear(),
   viewM0: new Date().getMonth(),
@@ -26,7 +29,7 @@ const state = {
   data: null,
   fileSha: null,
 
-  repoFull: getRepo() || "mantrova-studio/sd-tsc",
+  // token still editable
   token: getToken(),
 
   edit: {
@@ -44,13 +47,11 @@ function genId(prefix="id"){
 }
 function norm(s){ return String(s||"").trim(); }
 
-/* ---------------- Data ensure ---------------- */
-
 function ensureDataShape(){
   if(!state.data.meta) state.data.meta = {};
   if(!state.data.days) state.data.days = {};
   if(!Array.isArray(state.data.employees)) state.data.employees = [];
-  if(!Array.isArray(state.data.templates)) state.data.templates = []; // templates now in json
+  if(!Array.isArray(state.data.templates)) state.data.templates = [];
 }
 
 /* ---------------- Pills ---------------- */
@@ -128,7 +129,7 @@ function renderWeekdays(){
 
 function renderHeader(){
   qs("#monthLabel").textContent = monthTitle(state.viewY, state.viewM0);
-  qs("#repoValue").textContent = state.repoFull || "—";
+  qs("#repoValue").textContent = REPO_FULL;
   qs("#tokenState").textContent = state.token ? "Token: OK" : "Token: нет";
 }
 
@@ -240,7 +241,7 @@ function bindCalendarClicks(){
   });
 }
 
-/* ---------------- Employees selects with filter ---------------- */
+/* ---------------- Employees selects ---------------- */
 
 function getEmployeesFiltered(){
   const emps = (state.data.employees || []).slice();
@@ -288,7 +289,7 @@ function refreshAllEmployeeSelects(){
   }
 }
 
-/* ---------------- Templates (name + time only) ---------------- */
+/* ---------------- Templates (name + time) ---------------- */
 
 function templatesOptionsHTML(){
   const tpls = (state.data.templates || []).slice().sort((a,b)=>String(a.label||"").localeCompare(String(b.label||""), "ru"));
@@ -514,7 +515,7 @@ function bindEditorEvents(){
     applyEditorToData();
     closeModal(modal);
     renderCalendar();
-    toast("good", "День применён", "Теперь нажми “Сохранить в GitHub”, чтобы записать изменения.");
+    toast("good","День применён","Теперь нажми “Сохранить в GitHub”.");
   });
 }
 
@@ -544,7 +545,7 @@ function applyEditorToData(){
   state.data.meta.updatedAt = new Date().toISOString();
 }
 
-/* ---------------- Employees modal (persist in data) ---------------- */
+/* ---------------- Employees modal ---------------- */
 
 function renderEmployeesList(){
   const modalOpen = qs("#employeesModal")?.getAttribute("data-open")==="1";
@@ -603,7 +604,7 @@ function renderEmployeesList(){
           <input class="input" data-empk="role" data-empid="${e.id}" value="${e.role || ""}" placeholder="Курьер / Повар / Оператор" />
         </div>
 
-        <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
+        <div style="display:flex; gap:10px; justify-content:flex-end">
           <button class="btn danger small" type="button" data-empaction="del" data-empid="${e.id}">Удалить</button>
         </div>
       </div>
@@ -640,7 +641,7 @@ function bindEmployees(){
     state.data.employees.push({ id, name:"", dept:deptDefault, role:"" });
     renderEmployeesList();
     refreshAllEmployeeSelects();
-    toast("good","Добавлено","Теперь нажми “Применить”, затем “Сохранить в GitHub”.");
+    toast("good","Добавлено","Нажми “Применить”, затем “Сохранить в GitHub”.");
   });
 
   modal.addEventListener("input", (e)=>{
@@ -669,8 +670,7 @@ function bindEmployees(){
       state.data.employees = (state.data.employees || []).filter(x => x.id !== empId);
       renderEmployeesList();
       refreshAllEmployeeSelects();
-      toast("good","Удалено","Сотрудник удалён из списка (в старых сменах останется employeeId).");
-      return;
+      toast("good","Удалено","Из списка удалён. В старых сменах останется employeeId.");
     }
   });
 
@@ -681,7 +681,7 @@ function bindEmployees(){
   });
 }
 
-/* ---------------- Templates modal (persist in data) ---------------- */
+/* ---------------- Templates modal ---------------- */
 
 function renderTemplatesList(){
   const modalOpen = qs("#templatesModal")?.getAttribute("data-open")==="1";
@@ -760,12 +760,7 @@ function bindTemplates(){
   });
 
   qs("#addTplBtn").addEventListener("click", ()=>{
-    state.data.templates.push({
-      id: genId("tpl"),
-      label: "Новый шаблон",
-      from: "",
-      to: ""
-    });
+    state.data.templates.push({ id: genId("tpl"), label: "Новый шаблон", from: "", to: "" });
     renderTemplatesList();
     toast("good","Шаблон добавлен","Отредактируй и нажми “Применить”.");
   });
@@ -792,7 +787,6 @@ function bindTemplates(){
       state.data.templates = (state.data.templates || []).filter(x => x.id !== tplId);
       renderTemplatesList();
       toast("good","Удалено","Шаблон удалён.");
-      return;
     }
   });
 
@@ -893,8 +887,8 @@ function bindSearch(){
 /* ---------------- GitHub load/save ---------------- */
 
 async function loadFromGitHubOrLocal(){
-  if(state.repoFull && state.token){
-    const r = await ghGetJsonFile({ token: state.token, repoFull: state.repoFull, path: FILE_PATH });
+  if(state.token){
+    const r = await ghGetJsonFile({ token: state.token, repoFull: REPO_FULL, path: FILE_PATH });
     if(r.ok && r.json){
       state.data = r.json;
       state.fileSha = r.sha;
@@ -909,15 +903,11 @@ async function loadFromGitHubOrLocal(){
 
 async function saveToGitHub(){
   if(!state.token){
-    toast("bad", "Нет токена", "Введи GitHub token в настройках.");
-    return;
-  }
-  if(!state.repoFull){
-    toast("bad", "Нет репозитория", "Укажи owner/repo в настройках.");
+    toast("bad","Нет токена","Введи token в настройках.");
     return;
   }
 
-  const cur = await ghGetJsonFile({ token: state.token, repoFull: state.repoFull, path: FILE_PATH });
+  const cur = await ghGetJsonFile({ token: state.token, repoFull: REPO_FULL, path: FILE_PATH });
   if(cur.ok){
     if(state.fileSha && cur.sha && state.fileSha !== cur.sha){
       toast("warn","Файл обновился","Нажми “Обновить”, чтобы не затереть чужие изменения.");
@@ -926,10 +916,10 @@ async function saveToGitHub(){
     state.fileSha = cur.sha;
   }
 
-  const msg = `smena: update shifts (${new Date().toISOString()})`;
+  const msg = `smena: update (${new Date().toISOString()})`;
   const put = await ghPutJsonFile({
     token: state.token,
-    repoFull: state.repoFull,
+    repoFull: REPO_FULL,
     path: FILE_PATH,
     json: state.data,
     message: msg,
@@ -954,19 +944,16 @@ function bindSettings(){
   bindModalClose(qs("#settingsModal"));
 
   qs("#settingsBtn").addEventListener("click", ()=>{
-    qs("#repoInput").value = state.repoFull || "";
     qs("#tokenInput").value = state.token || "";
     openModal(qs("#settingsModal"));
   });
 
   qs("#saveSettingsBtn").addEventListener("click", ()=>{
-    state.repoFull = qs("#repoInput").value.trim();
     state.token = qs("#tokenInput").value.trim();
-    setRepo(state.repoFull);
     setToken(state.token);
     closeModal(qs("#settingsModal"));
     renderHeader();
-    toast("good","Настройки сохранены","OK");
+    toast("good","Token сохранён","OK");
   });
 
   qs("#reloadBtn").addEventListener("click", async ()=>{
@@ -1038,7 +1025,6 @@ async function init(){
   await loadFromGitHubOrLocal();
   ensureDataShape();
 
-  // дефолтные шаблоны времени (если пусто)
   if(state.data.templates.length === 0){
     state.data.templates = [
       { id: genId("tpl"), label:"День 10–18", from:"10:00", to:"18:00" },
