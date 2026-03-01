@@ -37,6 +37,21 @@ function genId(prefix="id"){
 }
 function norm(s){ return String(s||"").trim(); }
 
+/* ========= SAFE DOM HELPERS (чтобы можно было комментировать кнопки/модалки) ========= */
+function el(id){ return qs(id); }
+function on(id, evt, fn, opts){
+  const node = qs(id);
+  if(!node) return null;
+  node.addEventListener(evt, fn, opts);
+  return node;
+}
+function safeBindModalClose(id){
+  const m = qs(id);
+  if(m) bindModalClose(m);
+  return m;
+}
+/* ================================================================================ */
+
 function ensureDataShape(){
   if(!state.data.meta) state.data.meta = {};
   if(!state.data.days) state.data.days = {};
@@ -49,6 +64,8 @@ function ensureDataShape(){
 
 function buildDeptPills(){
   const row = qs("#deptRow");
+  if(!row) return; // ✅ можно скрыть блок pills
+
   row.innerHTML = "";
   for(const d of DEPTS){
     const b = document.createElement("button");
@@ -72,6 +89,8 @@ function buildDeptPills(){
 
 function buildEmpDeptPills(){
   const rows = [qs("#empDeptRow"), qs("#empDeptRow2")].filter(Boolean);
+  if(rows.length === 0) return; // ✅ можно скрыть оба блока
+
   for(const row of rows){
     row.innerHTML = "";
     for(const d of DEPTS){
@@ -105,6 +124,8 @@ function syncEmpDeptPills(){
 
 function renderWeekdays(){
   const wrap = qs("#weekdays");
+  if(!wrap) return; // ✅ можно скрыть шапку дней недели
+
   wrap.innerHTML = "";
   for(const w of WEEKDAYS){
     const d = document.createElement("div");
@@ -114,7 +135,9 @@ function renderWeekdays(){
 }
 
 function renderHeader(){
-  qs("#monthLabel").textContent = monthTitle(state.viewY, state.viewM0);
+  const ml = qs("#monthLabel");
+  if(ml) ml.textContent = monthTitle(state.viewY, state.viewM0);
+
   const top = qs("#tokenStateTop");
   if(top) top.textContent = state.token ? "Token: OK" : "Token: нет";
 }
@@ -157,6 +180,8 @@ function renderCalendar(){
   renderHeader();
 
   const daysWrap = qs("#days");
+  if(!daysWrap) return; // ✅ если календарь скрыт — просто не рендерим
+
   daysWrap.innerHTML = "";
 
   const y = state.viewY;
@@ -220,9 +245,9 @@ function moveMonth(delta){
 }
 
 function bindMonthNav(){
-  qs("#prevMonth").addEventListener("click", ()=>moveMonth(-1));
-  qs("#nextMonth").addEventListener("click", ()=>moveMonth(1));
-  qs("#todayBtn").addEventListener("click", ()=>{
+  on("#prevMonth", "click", ()=>moveMonth(-1));
+  on("#nextMonth", "click", ()=>moveMonth(1));
+  on("#todayBtn", "click", ()=>{
     const d = new Date();
     state.viewY = d.getFullYear();
     state.viewM0 = d.getMonth();
@@ -231,9 +256,11 @@ function bindMonthNav(){
     openEditor(state.selectedISO);
   });
 
-  // swipe on card
-  let sx=0, sy=0, st=0;
+  // swipe on card (если calendarCard скрыт — просто не вешаем)
   const area = qs("#calendarCard");
+  if(!area) return;
+
+  let sx=0, sy=0, st=0;
   area.addEventListener("touchstart", (e)=>{
     const t = e.changedTouches[0];
     sx=t.clientX; sy=t.clientY; st=Date.now();
@@ -251,7 +278,10 @@ function bindMonthNav(){
 }
 
 function bindCalendarClicks(){
-  qs("#days").addEventListener("click", (e)=>{
+  const wrap = qs("#days");
+  if(!wrap) return;
+
+  wrap.addEventListener("click", (e)=>{
     const btn = e.target.closest(".day");
     if(!btn) return;
     state.selectedISO = btn.dataset.iso;
@@ -331,19 +361,28 @@ function openEditor(iso){
     state.edit.otherShifts = all.filter(s => s.dept !== filterDept).map(x => ({...x}));
   }
 
-  qs("#editTitle").textContent = formatDateLong(iso);
-  qs("#editSub").textContent = (filterDept === "all")
-    ? `Смен: ${state.edit.shifts.length}`
-    : `Отдел: ${filterDept} • Смен: ${state.edit.shifts.length}`;
+  const t = qs("#editTitle");
+  if(t) t.textContent = formatDateLong(iso);
+
+  const sub = qs("#editSub");
+  if(sub){
+    sub.textContent = (filterDept === "all")
+      ? `Смен: ${state.edit.shifts.length}`
+      : `Отдел: ${filterDept} • Смен: ${state.edit.shifts.length}`;
+  }
 
   refreshAllEmployeeSelects();
   refreshTemplateSelect();
   renderEditorList();
-  openModal(qs("#editModal"));
+
+  const modal = qs("#editModal");
+  if(modal) openModal(modal);
 }
 
 function renderEditorList(){
   const list = qs("#editList");
+  if(!list) return;
+
   list.innerHTML = "";
 
   if(state.edit.shifts.length === 0){
@@ -431,6 +470,7 @@ function renderEditorList(){
 
 function bindEditorEvents(){
   const modal = qs("#editModal");
+  if(!modal) return; // ✅ можно скрыть модалку редактора целиком
 
   modal.addEventListener("input", (e)=>{
     const el = e.target;
@@ -463,7 +503,7 @@ function bindEditorEvents(){
     }
   });
 
-  qs("#addShiftBtn").addEventListener("click", ()=>{
+  on("#addShiftBtn", "click", ()=>{
     const emps = state.data.employees || [];
     const emp = emps[0];
 
@@ -484,9 +524,11 @@ function bindEditorEvents(){
     renderEditorList();
   });
 
-  qs("#quickAddBtn").addEventListener("click", ()=>{
-    const empId = qs("#quickEmp").value;
-    const tplId = qs("#quickTpl").value;
+  on("#quickAddBtn", "click", ()=>{
+    const qEmp = qs("#quickEmp");
+    const qTpl = qs("#quickTpl");
+    const empId = qEmp ? qEmp.value : "";
+    const tplId = qTpl ? qTpl.value : "";
 
     const emp = (state.data.employees || []).find(e => e.id === empId);
     const tpl = (state.data.templates || []).find(t => t.id === tplId);
@@ -517,7 +559,7 @@ function bindEditorEvents(){
     renderEditorList();
   });
 
-  qs("#applyDayBtn").addEventListener("click", ()=>{
+  on("#applyDayBtn", "click", ()=>{
     applyEditorToData();
     closeModal(modal);
     renderCalendar();
@@ -557,8 +599,11 @@ function renderEmployeesList(){
   const modalOpen = qs("#employeesModal")?.dataset.open === "1";
   if(!modalOpen) return;
 
-  const q = norm(qs("#empSearch").value).toLowerCase();
+  const search = qs("#empSearch");
+  const q = norm(search ? search.value : "").toLowerCase();
+
   const list = qs("#empList");
+  if(!list) return;
   list.innerHTML = "";
 
   const base = getEmployeesFiltered();
@@ -630,24 +675,27 @@ function renderEmployeesList(){
 }
 
 function bindEmployees(){
-  const modal = qs("#employeesModal");
-  bindModalClose(modal);
+  const modal = safeBindModalClose("#employeesModal");
 
-  qs("#employeesBtn").addEventListener("click", ()=>{
+  on("#employeesBtn", "click", ()=>{
+    if(!modal) return; // ✅ если модалки нет — просто ничего не делаем
     if(!isAdmin()){
       toast("warn","Нет доступа","Сначала войди в админку.");
-      openModal(qs("#authModal"));
+      const a = qs("#authModal");
+      if(a) openModal(a);
       return;
     }
-    qs("#empSearch").value = "";
+    const s = qs("#empSearch");
+    if(s) s.value = "";
     syncEmpDeptPills();
     openModal(modal);
     renderEmployeesList();
   });
 
-  qs("#empSearch").addEventListener("input", renderEmployeesList);
+  on("#empSearch", "input", renderEmployeesList);
 
-  qs("#addEmpBtn").addEventListener("click", ()=>{
+  on("#addEmpBtn", "click", ()=>{
+    if(!modal) return;
     const id = genId("e");
     const deptDefault = (state.empDept !== "all") ? state.empDept : "delivery";
     state.data.employees.push({ id, name:"", dept:deptDefault, role:"", phone:"" });
@@ -656,36 +704,39 @@ function bindEmployees(){
     toast("good","Добавлено","Нажми “Применить”, затем “Сохранить в GitHub”.");
   });
 
-  modal.addEventListener("input", (e)=>{
-    const el = e.target;
-    const empId = el.dataset.empid;
-    const k = el.dataset.empk;
-    if(!empId || !k) return;
+  if(modal){
+    modal.addEventListener("input", (e)=>{
+      const el = e.target;
+      const empId = el.dataset.empid;
+      const k = el.dataset.empk;
+      if(!empId || !k) return;
 
-    const emp = (state.data.employees || []).find(x => x.id === empId);
-    if(!emp) return;
-    emp[k] = el.value;
+      const emp = (state.data.employees || []).find(x => x.id === empId);
+      if(!emp) return;
+      emp[k] = el.value;
 
-    if(k === "dept"){
-      renderEmployeesList();
-      refreshAllEmployeeSelects();
-    }
-  });
+      if(k === "dept"){
+        renderEmployeesList();
+        refreshAllEmployeeSelects();
+      }
+    });
 
-  modal.addEventListener("click", (e)=>{
-    const btn = e.target.closest("button");
-    if(!btn) return;
+    modal.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button");
+      if(!btn) return;
 
-    if(btn.dataset.empaction === "del"){
-      const empId = btn.dataset.empid;
-      state.data.employees = (state.data.employees || []).filter(x => x.id !== empId);
-      renderEmployeesList();
-      refreshAllEmployeeSelects();
-      toast("good","Удалено","Из списка удалён. В старых сменах останется employeeId.");
-    }
-  });
+      if(btn.dataset.empaction === "del"){
+        const empId = btn.dataset.empid;
+        state.data.employees = (state.data.employees || []).filter(x => x.id !== empId);
+        renderEmployeesList();
+        refreshAllEmployeeSelects();
+        toast("good","Удалено","Из списка удалён. В старых сменах останется employeeId.");
+      }
+    });
+  }
 
-  qs("#applyEmpBtn").addEventListener("click", ()=>{
+  on("#applyEmpBtn", "click", ()=>{
+    if(!modal) return;
     state.data.meta.updatedAt = new Date().toISOString();
     toast("good","Сотрудники применены","Теперь нажми “Сохранить в GitHub”.");
     closeModal(modal);
@@ -699,6 +750,7 @@ function renderTemplatesList(){
   if(!modalOpen) return;
 
   const list = qs("#tplList");
+  if(!list) return;
   list.innerHTML = "";
 
   const tpls = (state.data.templates || [])
@@ -757,51 +809,56 @@ function renderTemplatesList(){
 }
 
 function bindTemplates(){
-  const modal = qs("#templatesModal");
-  bindModalClose(modal);
+  const modal = safeBindModalClose("#templatesModal");
 
-  qs("#templatesBtn").addEventListener("click", ()=>{
+  on("#templatesBtn", "click", ()=>{
+    if(!modal) return;
     if(!isAdmin()){
       toast("warn","Нет доступа","Сначала войди в админку.");
-      openModal(qs("#authModal"));
+      const a = qs("#authModal");
+      if(a) openModal(a);
       return;
     }
     openModal(modal);
     renderTemplatesList();
   });
 
-  qs("#addTplBtn").addEventListener("click", ()=>{
+  on("#addTplBtn", "click", ()=>{
+    if(!modal) return;
     state.data.templates.push({ id: genId("tpl"), label: "Новый шаблон", from: "", to: "" });
     renderTemplatesList();
     toast("good","Шаблон добавлен","Отредактируй и нажми “Применить”.");
   });
 
-  modal.addEventListener("input", (e)=>{
-    const el = e.target;
-    const tplId = el.dataset.tplid;
-    const k = el.dataset.tplk;
-    if(!tplId || !k) return;
+  if(modal){
+    modal.addEventListener("input", (e)=>{
+      const el = e.target;
+      const tplId = el.dataset.tplid;
+      const k = el.dataset.tplk;
+      if(!tplId || !k) return;
 
-    const t = (state.data.templates || []).find(x => x.id === tplId);
-    if(!t) return;
+      const t = (state.data.templates || []).find(x => x.id === tplId);
+      if(!t) return;
 
-    t[k] = el.value;
-    refreshTemplateSelect();
-  });
+      t[k] = el.value;
+      refreshTemplateSelect();
+    });
 
-  modal.addEventListener("click", (e)=>{
-    const btn = e.target.closest("button");
-    if(!btn) return;
+    modal.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button");
+      if(!btn) return;
 
-    if(btn.dataset.tplaction === "del"){
-      const tplId = btn.dataset.tplid;
-      state.data.templates = (state.data.templates || []).filter(x => x.id !== tplId);
-      renderTemplatesList();
-      toast("good","Удалено","Шаблон удалён.");
-    }
-  });
+      if(btn.dataset.tplaction === "del"){
+        const tplId = btn.dataset.tplid;
+        state.data.templates = (state.data.templates || []).filter(x => x.id !== tplId);
+        renderTemplatesList();
+        toast("good","Удалено","Шаблон удалён.");
+      }
+    });
+  }
 
-  qs("#applyTplBtn").addEventListener("click", ()=>{
+  on("#applyTplBtn", "click", ()=>{
+    if(!modal) return;
     state.data.meta.updatedAt = new Date().toISOString();
     refreshTemplateSelect();
     toast("good","Шаблоны применены","Теперь нажми “Сохранить в GitHub”.");
@@ -809,7 +866,7 @@ function bindTemplates(){
   });
 }
 
-/* -------- Search / Settings / Auth / GitHub (без изменений логики) -------- */
+/* -------- Search / Settings / Auth / GitHub -------- */
 
 async function loadFromGitHubOrLocal(){
   if(state.token){
@@ -831,7 +888,8 @@ async function loadFromGitHubOrLocal(){
 async function saveToGitHub(){
   if(!state.token){
     toast("bad","Нет токена","Введи token в настройках.");
-    openModal(qs("#settingsModal"));
+    const s = qs("#settingsModal");
+    if(s) openModal(s);
     return;
   }
 
@@ -867,30 +925,35 @@ async function saveToGitHub(){
 }
 
 function bindSettings(){
-  bindModalClose(qs("#settingsModal"));
+  const modal = safeBindModalClose("#settingsModal");
 
-  qs("#settingsBtn").addEventListener("click", ()=>{
-    qs("#tokenInput").value = state.token || "";
-    openModal(qs("#settingsModal"));
+  on("#settingsBtn", "click", ()=>{
+    if(!modal) return;
+    const ti = qs("#tokenInput");
+    if(ti) ti.value = state.token || "";
+    openModal(modal);
   });
 
-  qs("#saveSettingsBtn").addEventListener("click", ()=>{
-    state.token = qs("#tokenInput").value.trim();
+  on("#saveSettingsBtn", "click", ()=>{
+    if(!modal) return;
+    const ti = qs("#tokenInput");
+    state.token = ti ? ti.value.trim() : "";
     setToken(state.token);
-    closeModal(qs("#settingsModal"));
+    closeModal(modal);
     renderHeader();
     toast("good","Token сохранён","OK");
   });
 
-  qs("#clearTokenBtn").addEventListener("click", ()=>{
+  on("#clearTokenBtn", "click", ()=>{
+    if(!modal) return;
     setToken("");
     state.token = "";
     renderHeader();
     toast("warn","Token очищен","На этом устройстве token удалён.");
-    closeModal(qs("#settingsModal"));
+    closeModal(modal);
   });
 
-  qs("#reloadBtn").addEventListener("click", async ()=>{
+  on("#reloadBtn", "click", async ()=>{
     try{
       await loadFromGitHubOrLocal();
       ensureDataShape();
@@ -901,69 +964,82 @@ function bindSettings(){
     }
   });
 
-  qs("#saveBtn").addEventListener("click", ()=>saveToGitHub());
+  on("#saveBtn", "click", ()=>saveToGitHub());
 }
 
 function bindAuth(){
-  const modal = qs("#authModal");
-  bindModalClose(modal);
+  const modal = safeBindModalClose("#authModal");
 
-  qs("#authBtn").addEventListener("click", ()=>{
+  on("#authBtn", "click", ()=>{
+    if(!modal) return;
     openModal(modal);
-    qs("#passInput").focus();
+    const p = qs("#passInput");
+    if(p) p.focus();
   });
 
-  qs("#loginBtn").addEventListener("click", async ()=>{
-    const pass = qs("#passInput").value || "";
+  on("#loginBtn", "click", async ()=>{
+    if(!modal) return;
+    const passEl = qs("#passInput");
+    const pass = passEl ? passEl.value : "";
     const hex = await sha256Hex(pass);
 
     if(hex === ADMIN_PASSWORD_SHA256){
       setAdmin(true);
       closeModal(modal);
       toast("good","Вход выполнен","OK");
-      qs("#lockedState").textContent = "Доступ: ОК";
+      const ls = qs("#lockedState");
+      if(ls) ls.textContent = "Доступ: ОК";
     } else {
       toast("bad","Неверный пароль","Проверь пароль.");
     }
   });
 
-  if(isAdmin()){
-    qs("#lockedState").textContent = "Доступ: ОК";
+  const ls = qs("#lockedState");
+  if(ls){
+    if(isAdmin()){
+      ls.textContent = "Доступ: ОК";
+    } else {
+      ls.textContent = "Доступ: закрыт";
+      if(modal) openModal(modal);
+    }
   } else {
-    qs("#lockedState").textContent = "Доступ: закрыт";
-    openModal(modal);
+    // lockedState скрыт — ничего не делаем
+    if(!isAdmin() && modal) openModal(modal);
   }
 
   window.__printHash = async (p)=>console.log("SHA-256 HEX:", await sha256Hex(p));
 }
 
 function bindSearch(){
-  const modal = qs("#searchModal");
-  bindModalClose(modal);
+  const modal = safeBindModalClose("#searchModal");
 
-  qs("#searchBtn").addEventListener("click", ()=>{
+  on("#searchBtn", "click", ()=>{
+    if(!modal) return;
     if(!isAdmin()){
       toast("warn","Нет доступа","Сначала войди в админку.");
-      openModal(qs("#authModal"));
+      const a = qs("#authModal");
+      if(a) openModal(a);
       return;
     }
-    qs("#shiftSearch").value = "";
-    qs("#searchResults").innerHTML = `<div class="empty">Введи запрос для поиска.</div>`;
+    const inp = qs("#shiftSearch");
+    if(inp) inp.value = "";
+    const out = qs("#searchResults");
+    if(out) out.innerHTML = `<div class="empty">Введи запрос для поиска.</div>`;
     openModal(modal);
-    qs("#shiftSearch").focus();
+    if(inp) inp.focus();
   });
 
-  qs("#shiftSearch").addEventListener("input", ()=>{
-    // (упрощённо, без переписывания — можно вернуть ваш поиск позже)
-    // здесь можно оставить как было, если у тебя уже работал.
+  on("#shiftSearch", "input", ()=>{
+    // (упрощённо, без переписывания — можно вернуть поиск позже)
   });
 }
 
 async function init(){
-  bindModalClose(qs("#editModal"));
-  bindModalClose(qs("#employeesModal"));
-  bindModalClose(qs("#templatesModal"));
-  bindModalClose(qs("#searchModal"));
+  // ✅ безопасно закрываем модалки (если ты их закомментировал — ошибок не будет)
+  safeBindModalClose("#editModal");
+  safeBindModalClose("#employeesModal");
+  safeBindModalClose("#templatesModal");
+  safeBindModalClose("#searchModal");
 
   bindAuth();
   bindSettings();
