@@ -20,8 +20,7 @@
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 
-/* ===== ПК ВИД ВСЕГДА (и на телефоне тоже) =====
-   На телефоне будет горизонтальный скролл, зато раскладка как на ПК */
+/* ===== ПК ВИД ВСЕГДА (и на телефоне тоже) ===== */
 body{
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue";
@@ -32,9 +31,8 @@ body{
     radial-gradient(900px 700px at 55% 85%, rgba(167,139,250,.14), transparent 55%),
     linear-gradient(180deg, var(--bg0), var(--bg1));
   background-attachment: fixed;
-
-  min-width: 1100px;
-  overflow-x: hidden;
+  min-width: 960px; /* ключевой пункт: не даём ломать раскладку под телефон */
+  overflow-x: auto;
 }
 
 a{ color:inherit; text-decoration:none; }
@@ -198,6 +196,8 @@ a{ color:inherit; text-decoration:none; }
   gap: 10px;
   padding-bottom: 8px;
 }
+
+/* ====== ДЕНЬ + СКРОЛЛ ИМЁН ====== */
 .day{
   aspect-ratio: 1 / 1;
   border-radius: 18px;
@@ -206,13 +206,14 @@ a{ color:inherit; text-decoration:none; }
   color: #fff;
   cursor:pointer;
   display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  justify-content:space-between;
+  flex-direction:column;    /* важно: список будет занимать остаток */
+  align-items:stretch;
+  justify-content:flex-start;
   padding: 10px;
   position:relative;
   overflow:hidden;
 }
+
 .day[data-out="1"]{ opacity:.35; }
 .day[data-today="1"]{
   border-color: rgba(124,92,255,.55);
@@ -221,15 +222,50 @@ a{ color:inherit; text-decoration:none; }
 .day[data-selected="1"]{
   border-color: rgba(167,139,250,.60);
 }
+
+.dayTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 8px;
+}
 .dayNum{ font-weight: 800; }
+
 .dot{
   width: 8px; height: 8px; border-radius:999px;
   background: rgba(255,255,255,.0);
+  flex: 0 0 auto;
 }
 .day[data-has="1"] .dot{
   background: rgba(124,92,255,.95);
   box-shadow: 0 0 0 5px rgba(124,92,255,.16);
 }
+
+/* Скролл списка внутри дня */
+.dayNames{
+  margin-top: 8px;
+  flex: 1 1 auto;
+  overflow: auto;                    /* ✅ скролл */
+  -webkit-overflow-scrolling: touch; /* ✅ плавный скролл на мобиле */
+  padding-right: 2px;
+  border-radius: 12px;
+}
+
+/* Скрываем полосы скролла */
+.dayNames::-webkit-scrollbar{ width:0; height:0; }
+.dayNames{ scrollbar-width: none; -ms-overflow-style: none; }
+
+.dayName{
+  font-size: 11px;
+  line-height: 1.25;
+  color: rgba(255,255,255,.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px 0;
+}
+.dayName.muted{ color: rgba(255,255,255,.55); }
+/* ====== /ДЕНЬ ====== */
 
 .footerHint{
   padding: 0 16px 14px;
@@ -270,7 +306,7 @@ a{ color:inherit; text-decoration:none; }
   align-items:start;
 }
 
-/* ✅ Отступ перед блоком кнопок (Удалить / Применить / Очистить-Сохранить и т.п.) */
+/* ✅ Отступ перед блоком кнопок */
 .rightActions{
   width:100%;
   display:flex;
@@ -278,11 +314,9 @@ a{ color:inherit; text-decoration:none; }
   gap: 10px;
   flex-wrap:wrap;
 
-  margin-top: 14px;       /* главное: отлипание от полей */
+  margin-top: 14px;
   padding-top: 2px;
 }
-
-/* Дополнительный отступ именно внутри карточек списка (чтобы "Удалить" не прижималась) */
 .shiftRow .rightActions{
   margin-top: 16px;
 }
@@ -339,19 +373,12 @@ a{ color:inherit; text-decoration:none; }
 .modal[data-open="1"]{ display:flex; }
 .modalCard{
   width: min(760px, 100%);
-  max-height: calc(100dvh - 36px); /* ✅ корректно на мобиле */
-  overflow: hidden;
+  max-height: min(84vh, 900px);
+  overflow:hidden;
   border-radius: 26px;
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(10,10,18,.72);
   box-shadow: 0 30px 120px rgba(0,0,0,.65);
-}
-
-.modalBody{
-  padding: 14px;
-  overflow: auto;                     /* ✅ скролл внутри */
-  -webkit-overflow-scrolling: touch;  /* ✅ “нативный” скролл на мобиле */
-  max-height: calc(100dvh - 36px - 72px); /* card - header */
 }
 .modalHeader{
   padding: 14px 14px 10px;
@@ -370,6 +397,11 @@ a{ color:inherit; text-decoration:none; }
   background: rgba(255,255,255,.06);
   color: var(--text);
   cursor:pointer;
+}
+.modalBody{
+  padding: 14px;
+  overflow:auto;
+  max-height: calc(84vh - 72px);
 }
 
 /* ===== Toasts (always on top) ===== */
@@ -410,5 +442,3 @@ a{ color:inherit; text-decoration:none; }
   cursor:pointer;
 }
 .phoneBtn img{ width:18px; height:18px; opacity:.92; }
-
-
