@@ -1,4 +1,4 @@
-import { WEEKDAYS, MONTHS_RU, toISODate, todayISO, formatDateLong, sortShifts, sha256Hex } from "./util.js";
+import { WEEKDAYS, MONTHS_RU, toISODate, todayISO, formatDateLong, sortShifts } from "./util.js";
 import { qs, qsa, toast, openModal, closeModal, bindModalClose } from "./ui.js";
 import { getToken, setToken, isAdmin, setAdmin } from "./storage.js";
 import { ghGetJsonFile, ghPutJsonFile } from "./github.js";
@@ -6,8 +6,10 @@ import { ghGetJsonFile, ghPutJsonFile } from "./github.js";
 const FILE_PATH = "smena/data/shifts.json";
 const REPO_FULL = "mantrova-studio/sd-tsc";
 
-const ADMIN_PASSWORD_SHA256 =
-  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"; // пустой пароль
+/* ==========================
+   ✅ Обычный пароль (как просил)
+========================== */
+const ADMIN_PASSWORD = "2468"; // <-- поставь свой пароль
 
 const DEPTS = [
   { id: "all", label: "Все" },
@@ -58,6 +60,174 @@ function ensureDataShape(){
   if(!Array.isArray(state.data.employees)) state.data.employees = [];
   if(!Array.isArray(state.data.templates)) state.data.templates = [];
   state.data.employees.forEach(e=>{ if(typeof e.phone === "undefined") e.phone = ""; });
+}
+
+/* ==========================
+   🔒 LOCK SCREEN (админка скрыта до пароля)
+========================== */
+let __lockOverlay = null;
+
+function setLockedStateText(){
+  const ls = qs("#lockedState");
+  if(!ls) return;
+  ls.textContent = isAdmin() ? "Доступ: ОК" : "Доступ: закрыт";
+}
+
+function ensureAuthButtonMode(){
+  const btn = qs("#authBtn");
+  if(!btn) return;
+
+  if(isAdmin()){
+    // превращаем кнопку входа в "Выйти"
+    btn.style.display = "";
+    btn.textContent = "Выйти";
+    btn.title = "Выйти из админки";
+  } else {
+    // пока не вошли — можно скрыть, т.к. всё равно будет lock-screen
+    btn.style.display = "none";
+  }
+}
+
+function showLockScreen(){
+  if(__lockOverlay) return;
+
+  // блокируем клики по сайту
+  document.documentElement.style.overflow = "hidden";
+  document.body.style.pointerEvents = "none";
+
+  __lockOverlay = document.createElement("div");
+  __lockOverlay.style.cssText = `
+    position:fixed; inset:0; z-index:9999999;
+    display:flex; align-items:center; justify-content:center;
+    padding:18px;
+    background:
+      radial-gradient(1200px 900px at 15% 10%, rgba(124,92,255,.22), transparent 55%),
+      radial-gradient(1200px 900px at 85% 20%, rgba(255,77,109,.12), transparent 60%),
+      radial-gradient(900px 700px at 55% 85%, rgba(167,139,250,.14), transparent 55%),
+      linear-gradient(180deg, #070812, #0a0c1a);
+    color: rgba(255,255,255,.92);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  `;
+
+  __lockOverlay.innerHTML = `
+    <div style="
+      width:min(520px,100%);
+      border-radius:22px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.05);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      padding:16px;
+    ">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-weight:900;letter-spacing:.02em;font-size:16px;">Вход в админку</div>
+        <div style="font-size:12px;opacity:.65;">График смен</div>
+      </div>
+
+      <div style="height:1px;background:rgba(255,255,255,.10);margin:12px 0;"></div>
+
+      <div style="font-size:12px;opacity:.70;margin-bottom:8px;">Пароль</div>
+
+      <input id="__lockPass" type="password" autocomplete="off" placeholder="Введите пароль"
+        style="
+          width:100%;
+          display:block;
+          border-radius:16px;
+          border:1px solid rgba(255,255,255,.12);
+          background: rgba(0,0,0,.18);
+          color: rgba(255,255,255,.92);
+          padding:14px 14px;
+          outline:none;
+          font-size:14px;
+        " />
+
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;justify-content:flex-end;">
+        <button id="__lockLogin"
+          style="
+            border-radius:14px;
+            border:1px solid rgba(124,92,255,.45);
+            background: linear-gradient(180deg, rgba(124,92,255,.28), rgba(124,92,255,.12));
+            color: rgba(255,255,255,.92);
+            padding:12px 14px;
+            cursor:pointer;
+            font-weight:800;
+          "
+        >Войти</button>
+      </div>
+
+      <div id="__lockErr" style="margin-top:10px;font-size:12px;opacity:.75;white-space:pre-wrap;"></div>
+    </div>
+  `;
+
+  document.body.appendChild(__lockOverlay);
+  __lockOverlay.style.pointerEvents = "auto";
+
+  const inp = document.getElementById("__lockPass");
+  const btn = document.getElementById("__lockLogin");
+  const err = document.getElementById("__lockErr");
+
+  const tryLogin = ()=>{
+    const pass = (inp?.value || "").trim();
+    if(pass !== ADMIN_PASSWORD){
+      if(err) err.textContent = "Неверный пароль.";
+      return;
+    }
+    if(err) err.textContent = "";
+
+    // запоминаем вход на устройстве (storage.js)
+    setAdmin(true);
+
+    hideLockScreen();
+
+    // обновим UI состояния
+    setLockedStateText();
+    ensureAuthButtonMode();
+
+    toast("good","Вход выполнен","OK");
+  };
+
+  btn?.addEventListener("click", tryLogin);
+  inp?.addEventListener("keydown", (e)=>{ if(e.key === "Enter") tryLogin(); });
+
+  setTimeout(()=>{ try{ inp?.focus(); }catch{} }, 30);
+}
+
+function hideLockScreen(){
+  if(!__lockOverlay) return;
+
+  __lockOverlay.remove();
+  __lockOverlay = null;
+
+  document.body.style.pointerEvents = "";
+  document.documentElement.style.overflow = "";
+}
+
+function guardAdmin(){
+  // если не админ — блокируем всё и показываем вход
+  if(!isAdmin()){
+    setLockedStateText();
+    ensureAuthButtonMode();
+    showLockScreen();
+    return false;
+  }
+  // если админ — снимаем блок, продолжаем
+  hideLockScreen();
+  setLockedStateText();
+  ensureAuthButtonMode();
+  return true;
+}
+
+function bindLogoutButton(){
+  // #authBtn теперь "Выйти"
+  const btn = qs("#authBtn");
+  if(!btn) return;
+
+  btn.addEventListener("click", ()=>{
+    if(!isAdmin()) return; // на всякий
+    setAdmin(false);
+    // чтобы гарантированно всё закрылось/обновилось:
+    location.reload();
+  });
 }
 
 /* -------- Pills -------- */
@@ -681,8 +851,6 @@ function bindEmployees(){
     if(!modal) return; // ✅ если модалки нет — просто ничего не делаем
     if(!isAdmin()){
       toast("warn","Нет доступа","Сначала войди в админку.");
-      const a = qs("#authModal");
-      if(a) openModal(a);
       return;
     }
     const s = qs("#empSearch");
@@ -815,8 +983,6 @@ function bindTemplates(){
     if(!modal) return;
     if(!isAdmin()){
       toast("warn","Нет доступа","Сначала войди в админку.");
-      const a = qs("#authModal");
-      if(a) openModal(a);
       return;
     }
     openModal(modal);
@@ -866,7 +1032,7 @@ function bindTemplates(){
   });
 }
 
-/* -------- Search / Settings / Auth / GitHub -------- */
+/* -------- Search / Settings / GitHub -------- */
 
 async function loadFromGitHubOrLocal(){
   if(state.token){
@@ -967,49 +1133,6 @@ function bindSettings(){
   on("#saveBtn", "click", ()=>saveToGitHub());
 }
 
-function bindAuth(){
-  const modal = safeBindModalClose("#authModal");
-
-  on("#authBtn", "click", ()=>{
-    if(!modal) return;
-    openModal(modal);
-    const p = qs("#passInput");
-    if(p) p.focus();
-  });
-
-  on("#loginBtn", "click", async ()=>{
-    if(!modal) return;
-    const passEl = qs("#passInput");
-    const pass = passEl ? passEl.value : "";
-    const hex = await sha256Hex(pass);
-
-    if(hex === ADMIN_PASSWORD_SHA256){
-      setAdmin(true);
-      closeModal(modal);
-      toast("good","Вход выполнен","OK");
-      const ls = qs("#lockedState");
-      if(ls) ls.textContent = "Доступ: ОК";
-    } else {
-      toast("bad","Неверный пароль","Проверь пароль.");
-    }
-  });
-
-  const ls = qs("#lockedState");
-  if(ls){
-    if(isAdmin()){
-      ls.textContent = "Доступ: ОК";
-    } else {
-      ls.textContent = "Доступ: закрыт";
-      if(modal) openModal(modal);
-    }
-  } else {
-    // lockedState скрыт — ничего не делаем
-    if(!isAdmin() && modal) openModal(modal);
-  }
-
-  window.__printHash = async (p)=>console.log("SHA-256 HEX:", await sha256Hex(p));
-}
-
 function bindSearch(){
   const modal = safeBindModalClose("#searchModal");
 
@@ -1017,8 +1140,6 @@ function bindSearch(){
     if(!modal) return;
     if(!isAdmin()){
       toast("warn","Нет доступа","Сначала войди в админку.");
-      const a = qs("#authModal");
-      if(a) openModal(a);
       return;
     }
     const inp = qs("#shiftSearch");
@@ -1034,14 +1155,23 @@ function bindSearch(){
   });
 }
 
+/* ==========================
+   INIT
+========================== */
 async function init(){
   // ✅ безопасно закрываем модалки (если ты их закомментировал — ошибок не будет)
   safeBindModalClose("#editModal");
   safeBindModalClose("#employeesModal");
   safeBindModalClose("#templatesModal");
   safeBindModalClose("#searchModal");
+  // authModal больше не нужен — можно оставить в HTML или удалить
 
-  bindAuth();
+  // кнопка "Выйти"
+  bindLogoutButton();
+
+  // если не админ — блокируем до ввода пароля
+  guardAdmin();
+
   bindSettings();
   bindMonthNav();
   bindCalendarClicks();
@@ -1070,6 +1200,10 @@ async function init(){
   renderCalendar();
   refreshAllEmployeeSelects();
   refreshTemplateSelect();
+
+  // обновим статус и кнопку
+  setLockedStateText();
+  ensureAuthButtonMode();
 }
 
 function escapeHtml(s){
