@@ -2,18 +2,17 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=1100, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#070812" />
-  <title>SD • TSC — График смен</title>
-
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>График смен — SD TSC</title>
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
+
   <div class="topbar">
     <div class="topbarInner">
       <div class="brand">
         <div class="brandDot"></div>
-        <div style="min-width:0">
+        <div>
           <div class="brandTitle">SD • TSC — ГРАФИК СМЕН</div>
           <div class="brandSub">© POLIHOV DEV STUDIO</div>
         </div>
@@ -21,7 +20,7 @@
 
       <div class="actions">
         <a class="iconBtn" href="./admin.html" title="Админка">
-          <img src="./assets/icons/gear.svg" alt="" />
+          <img src="./assets/icons/lock.svg" alt="">
           Админка
         </a>
       </div>
@@ -35,7 +34,7 @@
       <div class="card" id="calendarCard">
         <div class="cardHeader">
           <div class="hTitle">
-            <img src="./assets/icons/calendar.svg" alt="" />
+            <img src="./assets/icons/calendar.svg" alt="">
             <div>
               <div class="t">Календарь</div>
               <div class="s">Нажми на дату — увидишь смены</div>
@@ -44,7 +43,7 @@
 
           <div class="hRight monthNav">
             <button class="monthBtn" id="prevMonth" type="button" title="Предыдущий месяц">
-              <img src="./assets/icons/chev-left.svg" alt="" />
+              <img src="./assets/icons/chevron-left.svg" alt="">
             </button>
 
             <div class="monthLabel">
@@ -52,7 +51,7 @@
             </div>
 
             <button class="monthBtn" id="nextMonth" type="button" title="Следующий месяц">
-              <img src="./assets/icons/chev-right.svg" alt="" />
+              <img src="./assets/icons/chevron-right.svg" alt="">
             </button>
 
             <button class="btn small" id="todayBtn" type="button">Сегодня</button>
@@ -66,31 +65,29 @@
 
         <div class="footerHint">
           <div class="note">Листай месяц свайпом по календарю</div>
-          <div class="note">© POLIHOV DEV STUDIO</div>
+          <div>© POLIHOV DEV STUDIO</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Day modal -->
+  <!-- Day popup -->
   <div class="modal" id="dayModal">
     <div class="modalCard">
       <div class="modalHeader">
-        <div>
+        <div class="left">
           <div class="t" id="dayTitle">—</div>
           <div class="s" id="daySub">—</div>
         </div>
-        <button class="modalClose" type="button" data-close="1">✕</button>
+        <button class="modalClose" type="button">✕</button>
       </div>
-
       <div class="modalBody">
         <div class="list" id="dayList"></div>
       </div>
     </div>
   </div>
 
-  <!-- Toasts -->
-  <div class="toastWrap" id="toastWrap"></div>
+  <div class="toastWrap" id="toasts"></div>
 
   <script type="module" src="./js/app.js"></script>
 </body>
