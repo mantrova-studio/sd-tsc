@@ -33,12 +33,8 @@ body{
     linear-gradient(180deg, var(--bg0), var(--bg1));
   background-attachment: fixed;
 
-  /* ✅ никаких горизонтальных скроллов */
+  min-width: 1100px;
   overflow-x: hidden;
-
-  /* ✅ чтобы не было “белых зон” снизу/по краям */
-  min-height: 100dvh;
-  padding-bottom: env(safe-area-inset-bottom);
 }
 
 a{ color:inherit; text-decoration:none; }
@@ -415,29 +411,4 @@ a{ color:inherit; text-decoration:none; }
 }
 .phoneBtn img{ width:18px; height:18px; opacity:.92; }
 
-/* ===== Компактный ПК-вид на узких экранах (без горизонтального скролла) ===== */
-@media (max-width: 520px){
-  .container{ padding: 14px 12px 22px; }
-
-  .cardHeader{ padding: 14px 14px 10px; }
-  #monthLabel{ font-size: 14px; }
-
-  .monthBtn{ width:36px; height:36px; border-radius: 12px; }
-  .btn.small{ padding: 9px 10px; font-size: 12px; }
-
-  .weekdays{ gap: 6px; font-size: 11px; }
-  .days{ gap: 6px; }
-
-  .day{
-    border-radius: 16px;
-    padding: 8px;
-  }
-  .dayNum{ font-size: 13px; }
-
-  .pill{ padding: 9px 12px; font-size: 12px; }
-
-  /* чтобы хедер не лез в 2 строки слишком сильно */
-  .topbarInner{ padding: 12px 12px; }
-  .brandTitle{ font-size: 12px; }
-}
 
