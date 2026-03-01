@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Смены — SD TSC</title>
+  <title>График смен — SD TSC</title>
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
@@ -13,22 +13,22 @@
       <div class="brand">
         <div class="brandDot"></div>
         <div>
-          <div class="brandTitle">SD • TSC — СМЕНЫ</div>
-          <div class="brandSub">Календарь смен</div>
+          <div class="brandTitle">SD • TSC — ГРАФИК СМЕН</div>
+          <div class="brandSub">© POLIHOV DEV STUDIO</div>
         </div>
       </div>
 
       <div class="actions">
         <a class="iconBtn" href="./admin.html" title="Админка">
           <img src="./assets/icons/lock.svg" alt="">
-          Админ
+          Админка
         </a>
       </div>
     </div>
   </div>
 
   <div class="container">
-    <div class="pillRow" id="deptRow"></div>
+    <div class="pillRow center" id="deptRowMain"></div>
 
     <div class="grid">
       <div class="card" id="calendarCard">
@@ -37,7 +37,7 @@
             <img src="./assets/icons/calendar.svg" alt="">
             <div>
               <div class="t">Календарь</div>
-              <div class="s" id="monthSub">—</div>
+              <div class="s">Нажми на дату — увидишь смены</div>
             </div>
           </div>
 
@@ -48,7 +48,6 @@
 
             <div class="monthLabel">
               <div id="monthLabel">—</div>
-              <small>Свайп влево/вправо</small>
             </div>
 
             <button class="monthBtn" id="nextMonth" type="button" title="Следующий месяц">
@@ -65,28 +64,30 @@
         </div>
 
         <div class="footerHint">
-          <div>• Нажми на дату, чтобы увидеть смены</div>
+          <div class="note">Листай месяц свайпом по календарю</div>
           <div>© POLIHOV DEV STUDIO</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal -->
+  <!-- Day popup -->
   <div class="modal" id="dayModal">
     <div class="modalCard">
       <div class="modalHeader">
         <div class="left">
-          <div class="t" id="modalTitle">—</div>
-          <div class="s" id="modalSub">—</div>
+          <div class="t" id="dayTitle">—</div>
+          <div class="s" id="daySub">—</div>
         </div>
         <button class="modalClose" type="button">✕</button>
       </div>
       <div class="modalBody">
-        <div class="list" id="shiftList"></div>
+        <div class="list" id="dayList"></div>
       </div>
     </div>
   </div>
+
+  <div class="toastWrap" id="toasts"></div>
 
   <script type="module" src="./js/app.js"></script>
 </body>
