@@ -39,7 +39,9 @@ const state = {
 
   edit: {
     dayISO: null,
-    shifts: []
+    shifts: [],        // то, что редактируем и показываем (фильтрованные смены)
+    otherShifts: [],   // смены других отделов (сохраняем без изменений)
+    filterDept: "all"  // какой фильтр был выбран на момент открытия редактора
   }
 };
 
@@ -74,6 +76,11 @@ function buildDeptPills(){
     state.dept = btn.dataset.dept;
     setActive();
     renderCalendar();
+
+    // если редактор уже открыт — просто подсказка, чтобы было понятно
+    if(qs("#editModal")?.getAttribute("data-open")==="1"){
+      toast("warn","Фильтр изменён","Редактор дня открыт. Закрой и открой день заново, чтобы увидеть смены по новому фильтру.");
+    }
   });
 
   setActive();
@@ -236,12 +243,31 @@ function renderQuickSelectors(){
   }
 }
 
+/**
+ * ВАЖНО:
+ * - если выбран конкретный отдел (не all), редактор показывает только его смены
+ * - остальные смены дня (других отделов) сохраняются в otherShifts и не теряются
+ */
 function openEditor(iso){
+  const all = getDayAllShifts(iso);
+  const filterDept = state.dept;
+
   state.edit.dayISO = iso;
-  state.edit.shifts = getDayAllShifts(iso).map(x => ({...x}));
+  state.edit.filterDept = filterDept;
+
+  if(filterDept === "all"){
+    state.edit.shifts = all.map(x => ({...x}));
+    state.edit.otherShifts = [];
+  } else {
+    state.edit.shifts = all.filter(s => s.dept === filterDept).map(x => ({...x}));
+    state.edit.otherShifts = all.filter(s => s.dept !== filterDept).map(x => ({...x}));
+  }
 
   qs("#editTitle").textContent = formatDateLong(iso);
-  qs("#editSub").textContent = `Смен: ${state.edit.shifts.length}`;
+  const info = (filterDept === "all")
+    ? `Смен: ${state.edit.shifts.length}`
+    : `Отдел: ${filterDept} • Смен: ${state.edit.shifts.length}`;
+  qs("#editSub").textContent = info;
 
   renderQuickSelectors();
   renderEditorList();
@@ -256,7 +282,10 @@ function renderEditorList(){
   if(state.edit.shifts.length === 0){
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = "Смен нет. Нажми “Добавить пустую” или “Быстро добавить”.";
+    empty.textContent =
+      (state.edit.filterDept && state.edit.filterDept !== "all")
+        ? "По выбранному отделу смен нет. Добавь смену."
+        : "Смен нет. Нажми “Добавить пустую” или “Быстро добавить”.";
     list.appendChild(empty);
   } else {
     state.edit.shifts.forEach((s, idx)=>{
@@ -330,7 +359,10 @@ function renderEditorList(){
     });
   }
 
-  qs("#editSub").textContent = `Смен: ${state.edit.shifts.length}`;
+  const info = (state.edit.filterDept === "all")
+    ? `Смен: ${state.edit.shifts.length}`
+    : `Отдел: ${state.edit.filterDept} • Смен: ${state.edit.shifts.length}`;
+  qs("#editSub").textContent = info;
 }
 
 function bindEditorEvents(){
@@ -371,14 +403,21 @@ function bindEditorEvents(){
   qs("#addShiftBtn").addEventListener("click", ()=>{
     const emps = state.data?.employees || [];
     const emp = emps[0];
+
+    const deptDefault =
+      (state.edit.filterDept && state.edit.filterDept !== "all")
+        ? state.edit.filterDept
+        : (emp?.dept || "delivery");
+
     state.edit.shifts.push({
       employeeId: emp?.id || "",
-      dept: emp?.dept || "delivery",
+      dept: deptDefault,
       role: emp?.role || "",
       from: "",
       to: "",
       note: ""
     });
+
     renderEditorList();
   });
 
@@ -397,9 +436,15 @@ function bindEditorEvents(){
       return;
     }
 
+    // если мы редактируем конкретный отдел — принудительно ставим dept как фильтр
+    const deptFinal =
+      (state.edit.filterDept && state.edit.filterDept !== "all")
+        ? state.edit.filterDept
+        : (tpl.dept || emp.dept || "delivery");
+
     state.edit.shifts.push({
       employeeId: emp.id,
-      dept: tpl.dept || emp.dept || "delivery",
+      dept: deptFinal,
       role: tpl.role || emp.role || "",
       from: tpl.from || "",
       to: tpl.to || "",
@@ -432,9 +477,17 @@ function applyEditorToData(){
       note: String(s.note || "")
     }));
 
+  let result = clean;
+
+  // если редактировали конкретный отдел — приклеиваем "otherShifts" обратно, чтобы ничего не потерять
+  if(state.edit.filterDept && state.edit.filterDept !== "all"){
+    result = [...clean, ...(state.edit.otherShifts || [])];
+    result = sortShifts(result);
+  }
+
   if(!state.data.days) state.data.days = {};
-  if(clean.length === 0) delete state.data.days[iso];
-  else state.data.days[iso] = clean;
+  if(result.length === 0) delete state.data.days[iso];
+  else state.data.days[iso] = result;
 
   state.data.meta = state.data.meta || {};
   state.data.meta.updatedAt = new Date().toISOString();
@@ -981,13 +1034,21 @@ async function init(){
   bindModalClose(qs("#editModal"));
   bindEditorEvents();
   renderWeekdays();
-
   buildDeptPills();
 
   await loadFromGitHubOrLocal();
 
-  ensureDefaultTemplates();
-  state.templates = getTemplates();
+  // templates local
+  if(!Array.isArray(state.templates) || !state.templates.length){
+    state.templates = [
+      { id: genId("tpl"), label:"День 10–18", dept:"delivery", role:"", from:"10:00", to:"18:00", note:"" },
+      { id: genId("tpl"), label:"День 12–20", dept:"kitchen", role:"", from:"12:00", to:"20:00", note:"" },
+      { id: genId("tpl"), label:"Офис 09–17", dept:"call", role:"", from:"09:00", to:"17:00", note:"" }
+    ];
+    setTemplates(state.templates);
+  } else {
+    state.templates = getTemplates();
+  }
 
   state.selectedISO = todayISO();
   renderCalendar();
