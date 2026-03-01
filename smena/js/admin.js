@@ -13,9 +13,18 @@ const FILE_PATH = "smena/data/shifts.json";
  * 3) вставь сюда
  */
 const ADMIN_PASSWORD_SHA256 =
-  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"; // заглушка (пустая строка)
+  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"; // заглушка: пустой пароль
+
+const ADMIN_DEPTS = [
+  { id: "all", label: "Все" },
+  { id: "delivery", label: "Доставка" },
+  { id: "kitchen", label: "Кухня" },
+  { id: "call", label: "Колл-центр" }
+];
 
 const state = {
+  dept: "all",
+
   viewY: new Date().getFullYear(),
   viewM0: new Date().getMonth(),
   selectedISO: null,
@@ -41,6 +50,35 @@ function genId(prefix="id"){
 }
 function norm(s){ return String(s||"").trim(); }
 
+function buildDeptPills(){
+  const row = qs("#deptRow");
+  if(!row) return;
+
+  row.innerHTML = "";
+  for(const d of ADMIN_DEPTS){
+    const b = document.createElement("button");
+    b.className = "pill";
+    b.type = "button";
+    b.dataset.dept = d.id;
+    b.innerHTML = `<span class="v">${d.label}</span>`;
+    row.appendChild(b);
+  }
+
+  const setActive = ()=>{
+    qsa(".pill", row).forEach(p => p.dataset.active = (p.dataset.dept === state.dept ? "1" : "0"));
+  };
+
+  row.addEventListener("click", (e)=>{
+    const btn = e.target.closest(".pill");
+    if(!btn) return;
+    state.dept = btn.dataset.dept;
+    setActive();
+    renderCalendar();
+  });
+
+  setActive();
+}
+
 function renderWeekdays(){
   const wrap = qs("#weekdays");
   wrap.innerHTML = "";
@@ -62,7 +100,9 @@ function getDayAllShifts(iso){
 }
 
 function hasAnyShifts(iso){
-  return getDayAllShifts(iso).length > 0;
+  const arr = getDayAllShifts(iso);
+  if(state.dept === "all") return arr.length > 0;
+  return arr.some(s => s.dept === state.dept);
 }
 
 function renderCalendar(){
@@ -282,7 +322,6 @@ function renderEditorList(){
 
       list.appendChild(row);
 
-      // set select values
       const empSel = row.querySelector(`select[data-k="employeeId"][data-i="${idx}"]`);
       if(empSel) empSel.value = s.employeeId || "";
 
@@ -307,7 +346,6 @@ function bindEditorEvents(){
     if(!s) return;
     s[k] = el.value;
 
-    // если поменяли сотрудника — подтянуть dept/role (как дефолт)
     if(k === "employeeId"){
       const emp = (state.data?.employees || []).find(x => x.id === s.employeeId);
       if(emp){
@@ -484,7 +522,6 @@ function renderEmployeesList(){
     if(deptSel) deptSel.value = e.dept || "delivery";
   }
 
-  // После любых изменений — обновим селекты в редакторе
   renderQuickSelectors();
   renderEditorList();
 }
@@ -650,7 +687,7 @@ function bindTemplates(){
     }
 
     ensureDefaultTemplates();
-    state.templates = getTemplates(); // refresh
+    state.templates = getTemplates();
     renderTemplatesList();
     openModal(modal);
   });
@@ -705,7 +742,6 @@ function bindTemplates(){
 /* ---------------- Search (across shifts) ---------------- */
 
 function buildSearchIndex(){
-  // returns array of { iso, shift, empName }
   const res = [];
   const emps = state.data?.employees || [];
   const days = state.data?.days || {};
@@ -765,7 +801,6 @@ function renderSearchResults(){
     `;
     row.addEventListener("click", ()=>{
       closeModal(qs("#searchModal"));
-      // перейти к месяцу результата + открыть редактор
       const [yy,mm] = h.iso.split("-").map(Number);
       state.viewY = yy;
       state.viewM0 = mm - 1;
@@ -947,9 +982,10 @@ async function init(){
   bindEditorEvents();
   renderWeekdays();
 
+  buildDeptPills();
+
   await loadFromGitHubOrLocal();
 
-  // templates local
   ensureDefaultTemplates();
   state.templates = getTemplates();
 
