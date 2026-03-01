@@ -343,12 +343,19 @@ a{ color:inherit; text-decoration:none; }
 .modal[data-open="1"]{ display:flex; }
 .modalCard{
   width: min(760px, 100%);
-  max-height: min(84vh, 900px);
-  overflow:hidden;
+  max-height: calc(100dvh - 36px); /* ✅ корректно на мобиле */
+  overflow: hidden;
   border-radius: 26px;
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(10,10,18,.72);
   box-shadow: 0 30px 120px rgba(0,0,0,.65);
+}
+
+.modalBody{
+  padding: 14px;
+  overflow: auto;                     /* ✅ скролл внутри */
+  -webkit-overflow-scrolling: touch;  /* ✅ “нативный” скролл на мобиле */
+  max-height: calc(100dvh - 36px - 72px); /* card - header */
 }
 .modalHeader{
   padding: 14px 14px 10px;
@@ -367,11 +374,6 @@ a{ color:inherit; text-decoration:none; }
   background: rgba(255,255,255,.06);
   color: var(--text);
   cursor:pointer;
-}
-.modalBody{
-  padding: 14px;
-  overflow:auto;
-  max-height: calc(84vh - 72px);
 }
 
 /* ===== Toasts (always on top) ===== */
@@ -412,3 +414,30 @@ a{ color:inherit; text-decoration:none; }
   cursor:pointer;
 }
 .phoneBtn img{ width:18px; height:18px; opacity:.92; }
+
+/* ===== Компактный ПК-вид на узких экранах (без горизонтального скролла) ===== */
+@media (max-width: 520px){
+  .container{ padding: 14px 12px 22px; }
+
+  .cardHeader{ padding: 14px 14px 10px; }
+  #monthLabel{ font-size: 14px; }
+
+  .monthBtn{ width:36px; height:36px; border-radius: 12px; }
+  .btn.small{ padding: 9px 10px; font-size: 12px; }
+
+  .weekdays{ gap: 6px; font-size: 11px; }
+  .days{ gap: 6px; }
+
+  .day{
+    border-radius: 16px;
+    padding: 8px;
+  }
+  .dayNum{ font-size: 13px; }
+
+  .pill{ padding: 9px 12px; font-size: 12px; }
+
+  /* чтобы хедер не лез в 2 строки слишком сильно */
+  .topbarInner{ padding: 12px 12px; }
+  .brandTitle{ font-size: 12px; }
+}
+
