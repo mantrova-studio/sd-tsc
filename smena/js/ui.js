@@ -25,10 +25,12 @@ export function toast(type, title, msg){
 
 export function openModal(modalEl){
   modalEl.setAttribute("data-open","1");
+  document.body.classList.add("modalOpen");
 }
 
 export function closeModal(modalEl){
   modalEl.setAttribute("data-open","0");
+  document.body.classList.remove("modalOpen");
 }
 
 export function bindModalClose(modalEl, closeBtnSel=".modalClose"){
