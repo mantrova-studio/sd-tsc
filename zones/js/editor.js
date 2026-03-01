@@ -405,6 +405,34 @@
   }
 
   // ==========================
+  // DOWNLOAD (GeoJSON export) ✅ FIX
+  // ==========================
+  function downloadTextFile(filename, text, mime = "application/geo+json") {
+    const blob = new Blob([text], { type: `${mime};charset=utf-8` });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 0);
+  }
+
+  function exportCurrentGeoJson() {
+    const mode = getMode();
+    const geo = buildGeoJsonFromPolys();
+    const filename = mode === "night" ? "zones_night.geojson" : "zones_day.geojson";
+    const text = JSON.stringify(geo, null, 2);
+    downloadTextFile(filename, text);
+  }
+
+  // ==========================
   // ACTIONS
   // ==========================
   function startDrawing() {
@@ -743,6 +771,11 @@
   editBtn.addEventListener("click", toggleEdit);
   delBtn.addEventListener("click", deleteSelected);
   savePropsBtn.addEventListener("click", saveProps);
+
+  // ✅ EXPORT BUTTON FIX
+  exportBtn.addEventListener("click", () => {
+    exportCurrentGeoJson();
+  });
 
   if (resetLocalBtn) {
     resetLocalBtn.addEventListener("click", async () => {
