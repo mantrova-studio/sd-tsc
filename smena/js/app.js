@@ -61,10 +61,17 @@ function getDayShiftsFiltered(iso){
   if(state.dept === "all") return all;
   return all.filter(s => s.dept === state.dept);
 }
+function hasAnyShifts(iso){
+  return getDayShiftsFiltered(iso).length > 0;
+}
 
 function getEmployeeName(employeeId){
   const emp = (state.data?.employees || []).find(e => e.id === employeeId);
   return emp?.name || employeeId || "Сотрудник";
+}
+
+function renderHeader(){
+  qs("#monthLabel").textContent = monthTitle(state.viewY, state.viewM0);
 }
 
 function buildNamesHTML(iso){
@@ -73,9 +80,9 @@ function buildNamesHTML(iso){
     return `<div class="dayNames"><div class="dayName muted">—</div></div>`;
   }
 
-  // имена без дублей (если один сотрудник в нескольких сменах)
-  const seen = new Set();
+  // имена без дублей (если один сотрудник стоит несколько смен)
   const names = [];
+  const seen = new Set();
   for(const s of shifts){
     const n = getEmployeeName(s.employeeId);
     if(seen.has(n)) continue;
@@ -85,14 +92,6 @@ function buildNamesHTML(iso){
 
   const items = names.map(n => `<div class="dayName">${escapeHtml(n)}</div>`).join("");
   return `<div class="dayNames">${items}</div>`;
-}
-
-function hasAnyShifts(iso){
-  return getDayShiftsFiltered(iso).length > 0;
-}
-
-function renderHeader(){
-  qs("#monthLabel").textContent = monthTitle(state.viewY, state.viewM0);
 }
 
 function renderCalendar(){
@@ -195,6 +194,7 @@ function bindNav(){
 
 function bindCalendarClicks(){
   qs("#days").addEventListener("click", (e)=>{
+    // если кликнули по внутреннему скроллу списка, всё равно открываем день
     const btn = e.target.closest(".day");
     if(!btn) return;
     state.selectedISO = btn.dataset.iso;
