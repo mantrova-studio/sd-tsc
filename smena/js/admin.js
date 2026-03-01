@@ -4,8 +4,6 @@ import { getToken, setToken, isAdmin, setAdmin } from "./storage.js";
 import { ghGetJsonFile, ghPutJsonFile } from "./github.js";
 
 const FILE_PATH = "smena/data/shifts.json";
-
-// ✅ фиксированный репозиторий (админу не нужно вводить)
 const REPO_FULL = "mantrova-studio/sd-tsc";
 
 const ADMIN_PASSWORD_SHA256 =
@@ -21,23 +19,15 @@ const DEPTS = [
 const state = {
   dept: "all",
   empDept: "all",
-
   viewY: new Date().getFullYear(),
   viewM0: new Date().getMonth(),
   selectedISO: null,
 
   data: null,
   fileSha: null,
-
-  // token still editable
   token: getToken(),
 
-  edit: {
-    dayISO: null,
-    shifts: [],
-    otherShifts: [],
-    filterDept: "all"
-  }
+  edit: { dayISO:null, shifts:[], otherShifts:[], filterDept:"all" }
 };
 
 function monthTitle(y, m0){ return `${MONTHS_RU[m0]} ${y}`; }
@@ -52,9 +42,14 @@ function ensureDataShape(){
   if(!state.data.days) state.data.days = {};
   if(!Array.isArray(state.data.employees)) state.data.employees = [];
   if(!Array.isArray(state.data.templates)) state.data.templates = [];
+
+  // ensure phone exists
+  state.data.employees.forEach(e=>{
+    if(typeof e.phone === "undefined") e.phone = "";
+  });
 }
 
-/* ---------------- Pills ---------------- */
+/* -------- Pills -------- */
 
 function buildDeptPills(){
   const row = qs("#deptRow");
@@ -64,23 +59,22 @@ function buildDeptPills(){
     b.className = "pill";
     b.type = "button";
     b.dataset.dept = d.id;
-    b.innerHTML = `<span class="v">${d.label}</span>`;
+    b.textContent = d.label;
     row.appendChild(b);
   }
-  const setActive = ()=>{
-    qsa(".pill", row).forEach(p => p.dataset.active = (p.dataset.dept === state.dept ? "1" : "0"));
-  };
+  const sync = ()=> qsa(".pill", row).forEach(p => p.dataset.active = (p.dataset.dept === state.dept ? "1" : "0"));
+
   row.addEventListener("click", (e)=>{
     const btn = e.target.closest(".pill");
     if(!btn) return;
     state.dept = btn.dataset.dept;
-    setActive();
+    sync();
     renderCalendar();
-    if(qs("#editModal")?.getAttribute("data-open")==="1"){
+    if(qs("#editModal")?.dataset.open === "1"){
       toast("warn","Фильтр смен изменён","Закрой и открой день заново, чтобы увидеть смены по новому фильтру.");
     }
   });
-  setActive();
+  sync();
 }
 
 function buildEmpDeptPills(){
@@ -92,7 +86,7 @@ function buildEmpDeptPills(){
       b.className = "pill";
       b.type = "button";
       b.dataset.empdept = d.id;
-      b.innerHTML = `<span class="v">${d.label}</span>`;
+      b.textContent = d.label;
       row.appendChild(b);
     }
     row.addEventListener("click", (e)=>{
@@ -109,34 +103,32 @@ function buildEmpDeptPills(){
 
 function syncEmpDeptPills(){
   const rows = [qs("#empDeptRow"), qs("#empDeptRow2")].filter(Boolean);
-  for(const row of rows){
+  rows.forEach(row=>{
     qsa(".pill", row).forEach(p => p.dataset.active = (p.dataset.empdept === state.empDept ? "1" : "0"));
-  }
+  });
 }
 
-/* ---------------- Calendar ---------------- */
+/* -------- Calendar -------- */
 
 function renderWeekdays(){
   const wrap = qs("#weekdays");
   wrap.innerHTML = "";
-  const w = WEEKDAYS || ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
-  for(const x of w){
+  for(const w of WEEKDAYS){
     const d = document.createElement("div");
-    d.textContent = x;
+    d.textContent = w;
     wrap.appendChild(d);
   }
 }
 
 function renderHeader(){
   qs("#monthLabel").textContent = monthTitle(state.viewY, state.viewM0);
-  qs("#repoValue").textContent = REPO_FULL;
-  qs("#tokenState").textContent = state.token ? "Token: OK" : "Token: нет";
+  const top = qs("#tokenStateTop");
+  if(top) top.textContent = state.token ? "Token: OK" : "Token: нет";
 }
 
 function getDayAllShifts(iso){
   return sortShifts(state.data?.days?.[iso] || []);
 }
-
 function hasAnyShifts(iso){
   const arr = getDayAllShifts(iso);
   if(state.dept === "all") return arr.length > 0;
@@ -213,6 +205,7 @@ function bindMonthNav(){
     openEditor(state.selectedISO);
   });
 
+  // swipe on card
   let sx=0, sy=0, st=0;
   const area = qs("#calendarCard");
   area.addEventListener("touchstart", (e)=>{
@@ -241,7 +234,7 @@ function bindCalendarClicks(){
   });
 }
 
-/* ---------------- Employees selects ---------------- */
+/* -------- Employees selects (filtered) -------- */
 
 function getEmployeesFiltered(){
   const emps = (state.data.employees || []).slice();
@@ -262,11 +255,9 @@ function employeeOptionsHTML(includeEmployeeId=null){
   if(pinned && !filtered.some(e => e.id === pinned.id)){
     opts.push(`<option value="${pinned.id}">${pinned.name || pinned.id} (вне фильтра)</option>`);
   }
-
   for(const e of filtered){
     opts.push(`<option value="${e.id}">${e.name || e.id}</option>`);
   }
-
   return opts.join("");
 }
 
@@ -283,26 +274,21 @@ function refreshAllEmployeeSelects(){
     sel.innerHTML = employeeOptionsHTML(cur) || `<option value="">(нет сотрудников)</option>`;
     if(cur) sel.value = cur;
   });
-
-  if(qs("#editModal")?.getAttribute("data-open")==="1"){
-    renderEditorList();
-  }
 }
 
-/* ---------------- Templates (name + time) ---------------- */
+/* -------- Templates (name + time only) -------- */
 
 function templatesOptionsHTML(){
   const tpls = (state.data.templates || []).slice().sort((a,b)=>String(a.label||"").localeCompare(String(b.label||""), "ru"));
   if(tpls.length === 0) return `<option value="">(нет шаблонов)</option>`;
   return tpls.map(t => `<option value="${t.id}">${t.label || "Шаблон"} • ${t.from||"—"}–${t.to||"—"}</option>`).join("");
 }
-
 function refreshTemplateSelect(){
   const tplSel = qs("#quickTpl");
   if(tplSel) tplSel.innerHTML = templatesOptionsHTML();
 }
 
-/* ---------------- Editor shifts ---------------- */
+/* -------- Editor -------- */
 
 function openEditor(iso){
   const all = getDayAllShifts(iso);
@@ -327,7 +313,6 @@ function openEditor(iso){
   refreshAllEmployeeSelects();
   refreshTemplateSelect();
   renderEditorList();
-
   openModal(qs("#editModal"));
 }
 
@@ -349,7 +334,6 @@ function renderEditorList(){
   state.edit.shifts.forEach((s, idx)=>{
     const emp = (state.data.employees || []).find(e => e.id === s.employeeId);
     const name = emp?.name || s.employeeId || "Сотрудник";
-
     const row = document.createElement("div");
     row.className = "shiftRow";
 
@@ -401,7 +385,7 @@ function renderEditorList(){
             <input class="input" placeholder="Замена / Подмена…" value="${s.note || ""}" data-k="note" data-i="${idx}" />
           </div>
 
-          <div style="display:flex; gap:10px; justify-content:flex-end">
+          <div class="rightActions">
             <button class="btn danger small" type="button" data-action="delShift" data-i="${idx}">Удалить</button>
           </div>
         </div>
@@ -417,10 +401,6 @@ function renderEditorList(){
     const deptSel = row.querySelector(`select[data-k="dept"][data-i="${idx}"]`);
     if(deptSel) deptSel.value = s.dept || "delivery";
   });
-
-  qs("#editSub").textContent = (state.edit.filterDept === "all")
-    ? `Смен: ${state.edit.shifts.length}`
-    : `Отдел: ${state.edit.filterDept} • Смен: ${state.edit.shifts.length}`;
 }
 
 function bindEditorEvents(){
@@ -454,7 +434,6 @@ function bindEditorEvents(){
       const idx = Number(btn.dataset.i);
       state.edit.shifts.splice(idx, 1);
       renderEditorList();
-      return;
     }
   });
 
@@ -475,6 +454,7 @@ function bindEditorEvents(){
       to: "",
       note: ""
     });
+
     renderEditorList();
   });
 
@@ -515,7 +495,7 @@ function bindEditorEvents(){
     applyEditorToData();
     closeModal(modal);
     renderCalendar();
-    toast("good","День применён","Теперь нажми “Сохранить в GitHub”.");
+    toast("good", "День применён", "Теперь нажми “Сохранить в GitHub”.");
   });
 }
 
@@ -545,10 +525,10 @@ function applyEditorToData(){
   state.data.meta.updatedAt = new Date().toISOString();
 }
 
-/* ---------------- Employees modal ---------------- */
+/* -------- Employees -------- */
 
 function renderEmployeesList(){
-  const modalOpen = qs("#employeesModal")?.getAttribute("data-open")==="1";
+  const modalOpen = qs("#employeesModal")?.dataset.open === "1";
   if(!modalOpen) return;
 
   const q = norm(qs("#empSearch").value).toLowerCase();
@@ -560,7 +540,8 @@ function renderEmployeesList(){
     ? base.filter(e =>
         String(e.name||"").toLowerCase().includes(q) ||
         String(e.role||"").toLowerCase().includes(q) ||
-        String(e.dept||"").toLowerCase().includes(q)
+        String(e.dept||"").toLowerCase().includes(q) ||
+        String(e.phone||"").toLowerCase().includes(q)
       )
     : base;
 
@@ -604,7 +585,12 @@ function renderEmployeesList(){
           <input class="input" data-empk="role" data-empid="${e.id}" value="${e.role || ""}" placeholder="Курьер / Повар / Оператор" />
         </div>
 
-        <div style="display:flex; gap:10px; justify-content:flex-end">
+        <div class="field">
+          <div class="label">Телефон</div>
+          <input class="input" data-empk="phone" data-empid="${e.id}" value="${e.phone || ""}" placeholder="+7 900 000-00-00" />
+        </div>
+
+        <div class="rightActions">
           <button class="btn danger small" type="button" data-empaction="del" data-empid="${e.id}">Удалить</button>
         </div>
       </div>
@@ -638,7 +624,7 @@ function bindEmployees(){
   qs("#addEmpBtn").addEventListener("click", ()=>{
     const id = genId("e");
     const deptDefault = (state.empDept !== "all") ? state.empDept : "delivery";
-    state.data.employees.push({ id, name:"", dept:deptDefault, role:"" });
+    state.data.employees.push({ id, name:"", dept:deptDefault, role:"", phone:"" });
     renderEmployeesList();
     refreshAllEmployeeSelects();
     toast("good","Добавлено","Нажми “Применить”, затем “Сохранить в GitHub”.");
@@ -652,7 +638,6 @@ function bindEmployees(){
 
     const emp = (state.data.employees || []).find(x => x.id === empId);
     if(!emp) return;
-
     emp[k] = el.value;
 
     if(k === "dept"){
@@ -681,10 +666,10 @@ function bindEmployees(){
   });
 }
 
-/* ---------------- Templates modal ---------------- */
+/* -------- Templates -------- */
 
 function renderTemplatesList(){
-  const modalOpen = qs("#templatesModal")?.getAttribute("data-open")==="1";
+  const modalOpen = qs("#templatesModal")?.dataset.open === "1";
   if(!modalOpen) return;
 
   const list = qs("#tplList");
@@ -732,7 +717,7 @@ function renderTemplatesList(){
             </div>
           </div>
 
-          <div style="display:flex; gap:10px; justify-content:flex-end">
+          <div class="rightActions">
             <button class="btn danger small" type="button" data-tplaction="del" data-tplid="${t.id}">Удалить</button>
           </div>
         </div>
@@ -798,7 +783,7 @@ function bindTemplates(){
   });
 }
 
-/* ---------------- Search ---------------- */
+/* -------- Search -------- */
 
 function buildSearchIndex(){
   const res = [];
@@ -884,7 +869,7 @@ function bindSearch(){
   qs("#shiftSearch").addEventListener("input", renderSearchResults);
 }
 
-/* ---------------- GitHub load/save ---------------- */
+/* -------- GitHub load/save -------- */
 
 async function loadFromGitHubOrLocal(){
   if(state.token){
@@ -892,6 +877,7 @@ async function loadFromGitHubOrLocal(){
     if(r.ok && r.json){
       state.data = r.json;
       state.fileSha = r.sha;
+      toast("good","Загружено","Данные получены через GitHub API.");
       return;
     }
   }
@@ -899,11 +885,13 @@ async function loadFromGitHubOrLocal(){
   if(!res.ok) throw new Error("Не удалось загрузить shifts.json");
   state.data = await res.json();
   state.fileSha = null;
+  toast("warn","Read-only режим","Token не задан или GitHub недоступен. Редактирование сохранится только после токена.");
 }
 
 async function saveToGitHub(){
   if(!state.token){
     toast("bad","Нет токена","Введи token в настройках.");
+    openModal(qs("#settingsModal"));
     return;
   }
 
@@ -938,7 +926,7 @@ async function saveToGitHub(){
   toast("good","Сохранено","Изменения записаны в репозиторий.");
 }
 
-/* ---------------- Settings & Auth ---------------- */
+/* -------- Settings & Auth -------- */
 
 function bindSettings(){
   bindModalClose(qs("#settingsModal"));
@@ -954,6 +942,14 @@ function bindSettings(){
     closeModal(qs("#settingsModal"));
     renderHeader();
     toast("good","Token сохранён","OK");
+  });
+
+  qs("#clearTokenBtn").addEventListener("click", ()=>{
+    setToken("");
+    state.token = "";
+    renderHeader();
+    toast("warn","Token очищен","На этом устройстве token удалён.");
+    closeModal(qs("#settingsModal"));
   });
 
   qs("#reloadBtn").addEventListener("click", async ()=>{
@@ -1003,9 +999,14 @@ function bindAuth(){
   window.__printHash = async (p)=>console.log("SHA-256 HEX:", await sha256Hex(p));
 }
 
-/* ---------------- Init ---------------- */
+/* -------- Init -------- */
 
 async function init(){
+  bindModalClose(qs("#editModal"));
+  bindModalClose(qs("#employeesModal"));
+  bindModalClose(qs("#templatesModal"));
+  bindModalClose(qs("#searchModal"));
+
   bindAuth();
   bindSettings();
   bindMonthNav();
@@ -1014,11 +1015,9 @@ async function init(){
   bindEmployees();
   bindTemplates();
   bindSearch();
-
-  bindModalClose(qs("#editModal"));
   bindEditorEvents();
-  renderWeekdays();
 
+  renderWeekdays();
   buildDeptPills();
   buildEmpDeptPills();
 
