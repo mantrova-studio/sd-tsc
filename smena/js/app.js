@@ -14,13 +14,13 @@ function buildDeptPills(){
   const row = qs("#deptRow");
   row.innerHTML = "";
 
-  const pills = DEPTS.filter(d => d.id !== "all"); // на главной: 3 кнопки
+  const pills = DEPTS.filter(d => d.id !== "all"); // только 3 кнопки
   for(const d of pills){
     const b = document.createElement("button");
     b.className = "pill";
     b.type = "button";
     b.dataset.dept = d.id;
-    b.innerHTML = `<span class="v">${d.label}</span><span class="k">${d.hint}</span>`;
+    b.innerHTML = `<span class="v">${d.label}</span>`; // без подписи
     row.appendChild(b);
   }
 
@@ -44,9 +44,8 @@ function monthTitle(y, m0){ return `${MONTHS_RU[m0]} ${y}`; }
 function renderHeader(){
   qs("#monthLabel").textContent = monthTitle(state.viewY, state.viewM0);
 
-  // подсказка: активный отдел
-  const deptObj = DEPTS.find(d => d.id === state.dept);
-  qs("#monthSub").textContent = deptObj ? deptObj.hint : "";
+  // подсказку можно оставить пустой (или убрать из html вообще)
+  qs("#monthSub").textContent = "";
 }
 
 function mondayFirstIndex(jsDay){
@@ -87,7 +86,6 @@ function renderCalendar(){
   const startOffset = mondayFirstIndex(first.getDay()); // 0..6
   const daysInMonth = new Date(y, m0+1, 0).getDate();
 
-  // 42 cells
   const today = todayISO();
   const selected = state.selectedISO;
 
@@ -98,7 +96,6 @@ function renderCalendar(){
     let out = 0;
 
     if(dayNum < 1){
-      // previous month
       const prev = new Date(y, m0, 0);
       const prevDays = prev.getDate();
       cY = prev.getFullYear();
@@ -106,7 +103,6 @@ function renderCalendar(){
       cD = prevDays + dayNum;
       out = 1;
     } else if(dayNum > daysInMonth){
-      // next month
       const next = new Date(y, m0+1, dayNum - daysInMonth);
       cY = next.getFullYear();
       cM0 = next.getMonth();
@@ -235,7 +231,6 @@ async function init(){
   await loadData();
   renderCalendar();
 
-  // выделим сегодня
   state.selectedISO = todayISO();
   renderCalendar();
 }
