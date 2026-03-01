@@ -21,7 +21,7 @@
       <div class="actions">
         <a class="iconBtn" href="./index.html" title="На сайт">← Сайт</a>
 
-        <button class="iconBtn" id="searchBtn" type="button" title="Поиск по сотруднику">
+        <button class="iconBtn" id="searchBtn" type="button" title="Поиск по сменам">
           🔎 Поиск
         </button>
 
@@ -29,7 +29,7 @@
           👤 Сотрудники
         </button>
 
-        <button class="iconBtn" id="templatesBtn" type="button" title="Шаблоны смен">
+        <button class="iconBtn" id="templatesBtn" type="button" title="Шаблоны времени">
           ⏱ Шаблоны
         </button>
 
@@ -48,7 +48,7 @@
 
   <div class="container">
 
-    <!-- Dept filter for calendar -->
+    <!-- Dept filter for calendar/shifts -->
     <div class="pillRow" id="deptRow"></div>
 
     <div class="grid">
@@ -94,8 +94,8 @@
 
         <div class="footerHint">
           <div class="note">
-            • Фильтр сверху влияет на точки “есть смены” и на то, какие смены откроются в редакторе дня.<br/>
-            • Фильтр сотрудников задаётся отдельно (внутри модалки сотрудников/редактора смен).
+            • “Применить” в окнах меняет данные локально.<br/>
+            • Чтобы записать в репозиторий — нажми “Сохранить в GitHub”.
           </div>
           <div>© POLIHOV DEV STUDIO</div>
         </div>
@@ -171,13 +171,12 @@
       <div class="modalHeader">
         <div class="left">
           <div class="t">Сотрудники</div>
-          <div class="s">Фильтр помогает быстро находить нужный отдел</div>
+          <div class="s">Фильтр помогает работать с большим списком</div>
         </div>
         <button class="modalClose" type="button">✕</button>
       </div>
       <div class="modalBody">
 
-        <!-- EMP DEPT FILTER -->
         <div class="pillRow" id="empDeptRow"></div>
 
         <div class="row2">
@@ -186,8 +185,11 @@
             <input class="input" id="empSearch" placeholder="Имя, роль…" />
           </div>
           <div class="field">
-            <div class="label">Добавить</div>
-            <button class="btn primary" id="addEmpBtn" type="button">+ Новый сотрудник</button>
+            <div class="label">Действия</div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
+              <button class="btn" id="addEmpBtn" type="button">+ Новый</button>
+              <button class="btn primary" id="applyEmpBtn" type="button">Применить</button>
+            </div>
           </div>
         </div>
 
@@ -195,7 +197,7 @@
         <div class="list" id="empList"></div>
 
         <div class="note">
-          Удаление блокируется, если сотрудник уже стоит в сменах.
+          “Применить” сохраняет изменения в текущих данных. Затем нажми “Сохранить в GitHub”.
         </div>
       </div>
     </div>
@@ -206,18 +208,23 @@
     <div class="modalCard">
       <div class="modalHeader">
         <div class="left">
-          <div class="t">Шаблоны смен</div>
-          <div class="s">Хранятся на устройстве админа (localStorage)</div>
+          <div class="t">Шаблоны времени</div>
+          <div class="s">Только название + время (для применения к разным сотрудникам)</div>
         </div>
         <button class="modalClose" type="button">✕</button>
       </div>
       <div class="modalBody">
         <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
-          <button class="btn primary" id="addTplBtn" type="button">+ Новый шаблон</button>
+          <button class="btn" id="addTplBtn" type="button">+ Новый</button>
+          <button class="btn primary" id="applyTplBtn" type="button">Применить</button>
         </div>
 
         <div class="hr"></div>
         <div class="list" id="tplList"></div>
+
+        <div class="note">
+          “Применить” сохраняет изменения в текущих данных. Затем нажми “Сохранить в GitHub”.
+        </div>
       </div>
     </div>
   </div>
@@ -236,14 +243,11 @@
         <div class="formGrid">
           <div class="field">
             <div class="label">Запрос</div>
-            <input class="input" id="shiftSearch" placeholder="Например: Иванов, замена, курьер…" />
+            <input class="input" id="shiftSearch" placeholder="Например: Иванов, замена…" />
           </div>
           <div class="field">
             <div class="label">Результаты</div>
             <div class="list" id="searchResults"></div>
-          </div>
-          <div class="note">
-            Нажми на результат — откроется редактор соответствующего дня.
           </div>
         </div>
       </div>
@@ -262,7 +266,6 @@
       </div>
       <div class="modalBody">
 
-        <!-- EMP DEPT FILTER (for selects) -->
         <div class="pillRow" id="empDeptRow2"></div>
 
         <div class="formGrid">
@@ -272,7 +275,7 @@
               <select class="select" id="quickEmp"></select>
             </div>
             <div class="field">
-              <div class="label">Шаблон смены</div>
+              <div class="label">Шаблон времени</div>
               <select class="select" id="quickTpl"></select>
             </div>
           </div>
@@ -286,11 +289,6 @@
 
         <div class="hr"></div>
         <div class="list" id="editList"></div>
-
-        <div class="hr"></div>
-        <div class="note">
-          “Применить день” меняет данные локально. Чтобы записать в репозиторий — нажми “Сохранить в GitHub”.
-        </div>
       </div>
     </div>
   </div>
