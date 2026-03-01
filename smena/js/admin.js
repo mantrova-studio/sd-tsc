@@ -1,6 +1,6 @@
 import { WEEKDAYS, MONTHS_RU, toISODate, todayISO, formatDateLong, sortShifts, sha256Hex } from "./util.js";
 import { qs, qsa, toast, openModal, closeModal, bindModalClose } from "./ui.js";
-import { getToken, setToken, getRepo, setRepo, isAdmin, setAdmin, getTemplates, setTemplates } from "./storage.js";
+import { getToken, setToken, getRepo, setRepo, isAdmin, setAdmin } from "./storage.js";
 import { ghGetJsonFile, ghPutJsonFile } from "./github.js";
 
 const FILE_PATH = "smena/data/shifts.json";
@@ -8,21 +8,16 @@ const FILE_PATH = "smena/data/shifts.json";
 const ADMIN_PASSWORD_SHA256 =
   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"; // пустой пароль
 
-const ADMIN_DEPTS = [
+const DEPTS = [
   { id: "all", label: "Все" },
   { id: "delivery", label: "Доставка" },
   { id: "kitchen", label: "Кухня" },
   { id: "call", label: "Колл-центр" }
 ];
 
-const EMP_DEPTS = ADMIN_DEPTS; // те же варианты
-
 const state = {
-  // фильтр для смен/календаря
-  dept: "all",
-
-  // фильтр для сотрудников (в модалке и в селектах)
-  empDept: "all",
+  dept: "all",      // фильтр смен/календаря
+  empDept: "all",   // фильтр списка сотрудников/селектов
 
   viewY: new Date().getFullYear(),
   viewM0: new Date().getMonth(),
@@ -34,12 +29,10 @@ const state = {
   repoFull: getRepo() || "mantrova-studio/sd-tsc",
   token: getToken(),
 
-  templates: getTemplates(),
-
   edit: {
     dayISO: null,
-    shifts: [],        // показываемые/редактируемые смены (по dept фильтру)
-    otherShifts: [],   // смены других отделов (сохраняем)
+    shifts: [],
+    otherShifts: [],
     filterDept: "all"
   }
 };
@@ -51,14 +44,21 @@ function genId(prefix="id"){
 }
 function norm(s){ return String(s||"").trim(); }
 
-/* ---------------- Pills builders ---------------- */
+/* ---------------- Data ensure ---------------- */
+
+function ensureDataShape(){
+  if(!state.data.meta) state.data.meta = {};
+  if(!state.data.days) state.data.days = {};
+  if(!Array.isArray(state.data.employees)) state.data.employees = [];
+  if(!Array.isArray(state.data.templates)) state.data.templates = []; // templates now in json
+}
+
+/* ---------------- Pills ---------------- */
 
 function buildDeptPills(){
   const row = qs("#deptRow");
-  if(!row) return;
-
   row.innerHTML = "";
-  for(const d of ADMIN_DEPTS){
+  for(const d of DEPTS){
     const b = document.createElement("button");
     b.className = "pill";
     b.type = "button";
@@ -66,33 +66,27 @@ function buildDeptPills(){
     b.innerHTML = `<span class="v">${d.label}</span>`;
     row.appendChild(b);
   }
-
   const setActive = ()=>{
     qsa(".pill", row).forEach(p => p.dataset.active = (p.dataset.dept === state.dept ? "1" : "0"));
   };
-
   row.addEventListener("click", (e)=>{
     const btn = e.target.closest(".pill");
     if(!btn) return;
     state.dept = btn.dataset.dept;
     setActive();
     renderCalendar();
-
     if(qs("#editModal")?.getAttribute("data-open")==="1"){
       toast("warn","Фильтр смен изменён","Закрой и открой день заново, чтобы увидеть смены по новому фильтру.");
     }
   });
-
   setActive();
 }
 
 function buildEmpDeptPills(){
   const rows = [qs("#empDeptRow"), qs("#empDeptRow2")].filter(Boolean);
-  if(rows.length === 0) return;
-
   for(const row of rows){
     row.innerHTML = "";
-    for(const d of EMP_DEPTS){
+    for(const d of DEPTS){
       const b = document.createElement("button");
       b.className = "pill";
       b.type = "button";
@@ -100,7 +94,6 @@ function buildEmpDeptPills(){
       b.innerHTML = `<span class="v">${d.label}</span>`;
       row.appendChild(b);
     }
-
     row.addEventListener("click", (e)=>{
       const btn = e.target.closest(".pill");
       if(!btn) return;
@@ -110,7 +103,6 @@ function buildEmpDeptPills(){
       refreshAllEmployeeSelects();
     });
   }
-
   syncEmpDeptPills();
 }
 
@@ -126,9 +118,10 @@ function syncEmpDeptPills(){
 function renderWeekdays(){
   const wrap = qs("#weekdays");
   wrap.innerHTML = "";
-  for(const w of WEEKDAYS){
+  const w = WEEKDAYS || ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+  for(const x of w){
     const d = document.createElement("div");
-    d.textContent = w;
+    d.textContent = x;
     wrap.appendChild(d);
   }
 }
@@ -219,7 +212,6 @@ function bindMonthNav(){
     openEditor(state.selectedISO);
   });
 
-  // swipe on card
   let sx=0, sy=0, st=0;
   const area = qs("#calendarCard");
   area.addEventListener("touchstart", (e)=>{
@@ -248,29 +240,16 @@ function bindCalendarClicks(){
   });
 }
 
-/* ---------------- Employees helpers ---------------- */
-
-function ensureEmployees(){
-  if(!state.data.employees) state.data.employees = [];
-}
+/* ---------------- Employees selects with filter ---------------- */
 
 function getEmployeesFiltered(){
-  ensureEmployees();
   const emps = (state.data.employees || []).slice();
-  const filtered = (state.empDept === "all")
-    ? emps
-    : emps.filter(e => e.dept === state.empDept);
-
+  const filtered = (state.empDept === "all") ? emps : emps.filter(e => e.dept === state.empDept);
   return filtered.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""), "ru"));
 }
 
-/**
- * options for selects:
- * - filter by state.empDept
- * - BUT keep current selected employeeId even if outside filter (pinned option)
- */
 function employeeOptionsHTML(includeEmployeeId=null){
-  const all = (state.data?.employees || []);
+  const all = (state.data.employees || []);
   const filtered = getEmployeesFiltered();
 
   let pinned = null;
@@ -279,20 +258,18 @@ function employeeOptionsHTML(includeEmployeeId=null){
   }
 
   const opts = [];
-
   if(pinned && !filtered.some(e => e.id === pinned.id)){
-    opts.push(`<option value="${pinned.id}">${pinned.name} — ${pinned.role || pinned.dept} (вне фильтра)</option>`);
+    opts.push(`<option value="${pinned.id}">${pinned.name || pinned.id} (вне фильтра)</option>`);
   }
 
   for(const e of filtered){
-    opts.push(`<option value="${e.id}">${e.name} — ${e.role || e.dept}</option>`);
+    opts.push(`<option value="${e.id}">${e.name || e.id}</option>`);
   }
 
   return opts.join("");
 }
 
 function refreshAllEmployeeSelects(){
-  // quick select
   const quick = qs("#quickEmp");
   if(quick){
     const cur = quick.value || "";
@@ -300,44 +277,31 @@ function refreshAllEmployeeSelects(){
     if(cur) quick.value = cur;
   }
 
-  // selects inside editor list
   qsa(`#editList select[data-k="employeeId"]`).forEach(sel=>{
-    const cur = sel.value || sel.getAttribute("value") || "";
+    const cur = sel.value || "";
     sel.innerHTML = employeeOptionsHTML(cur) || `<option value="">(нет сотрудников)</option>`;
     if(cur) sel.value = cur;
   });
 
-  // re-render list header counts/text
   if(qs("#editModal")?.getAttribute("data-open")==="1"){
     renderEditorList();
   }
 }
 
-/* ---------------- Editor (shifts) ---------------- */
+/* ---------------- Templates (name + time only) ---------------- */
 
-function renderQuickSelectors(){
-  const empSel = qs("#quickEmp");
-  const tplSel = qs("#quickTpl");
-
-  if(empSel){
-    const cur = empSel.value || "";
-    empSel.innerHTML = employeeOptionsHTML(cur) || `<option value="">(нет сотрудников)</option>`;
-    if(cur) empSel.value = cur;
-  }
-
-  const tpls = state.templates || [];
-  if(tplSel){
-    if(tpls.length === 0){
-      tplSel.innerHTML = `<option value="">(нет шаблонов)</option>`;
-    } else {
-      tplSel.innerHTML = tpls
-        .slice()
-        .sort((a,b)=>String(a.label||"").localeCompare(String(b.label||""), "ru"))
-        .map(t => `<option value="${t.id}">${t.label} • ${t.from||"—"}–${t.to||"—"} • ${t.dept||"—"}</option>`)
-        .join("");
-    }
-  }
+function templatesOptionsHTML(){
+  const tpls = (state.data.templates || []).slice().sort((a,b)=>String(a.label||"").localeCompare(String(b.label||""), "ru"));
+  if(tpls.length === 0) return `<option value="">(нет шаблонов)</option>`;
+  return tpls.map(t => `<option value="${t.id}">${t.label || "Шаблон"} • ${t.from||"—"}–${t.to||"—"}</option>`).join("");
 }
+
+function refreshTemplateSelect(){
+  const tplSel = qs("#quickTpl");
+  if(tplSel) tplSel.innerHTML = templatesOptionsHTML();
+}
+
+/* ---------------- Editor shifts ---------------- */
 
 function openEditor(iso){
   const all = getDayAllShifts(iso);
@@ -359,8 +323,10 @@ function openEditor(iso){
     ? `Смен: ${state.edit.shifts.length}`
     : `Отдел: ${filterDept} • Смен: ${state.edit.shifts.length}`;
 
-  renderQuickSelectors();
+  refreshAllEmployeeSelects();
+  refreshTemplateSelect();
   renderEditorList();
+
   openModal(qs("#editModal"));
 }
 
@@ -376,77 +342,80 @@ function renderEditorList(){
         ? "По выбранному отделу смен нет. Добавь смену."
         : "Смен нет. Нажми “Добавить пустую” или “Быстро добавить”.";
     list.appendChild(empty);
-  } else {
-    state.edit.shifts.forEach((s, idx)=>{
-      const emp = (state.data?.employees || []).find(e => e.id === s.employeeId);
-      const name = emp?.name || s.employeeId || "Сотрудник";
+    return;
+  }
 
-      const row = document.createElement("div");
-      row.className = "shiftRow";
+  state.edit.shifts.forEach((s, idx)=>{
+    const emp = (state.data.employees || []).find(e => e.id === s.employeeId);
+    const name = emp?.name || s.employeeId || "Сотрудник";
 
-      row.innerHTML = `
-        <div style="flex:1">
-          <div class="shiftMain">
-            <div class="name">${name}</div>
-            <div class="meta">${(s.from||"—") + "–" + (s.to||"—")} • ${s.role || s.dept}${s.note ? " • " + s.note : ""}</div>
+    const row = document.createElement("div");
+    row.className = "shiftRow";
+
+    row.innerHTML = `
+      <div style="flex:1">
+        <div class="shiftMain">
+          <div class="name">${name}</div>
+          <div class="meta">${(s.from||"—") + "–" + (s.to||"—")} • ${s.role || s.dept}${s.note ? " • " + s.note : ""}</div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="formGrid">
+          <div class="field">
+            <div class="label">Сотрудник (фильтр: ${state.empDept})</div>
+            <select class="select" data-k="employeeId" data-i="${idx}">
+              ${employeeOptionsHTML(s.employeeId)}
+            </select>
           </div>
-          <div class="hr"></div>
-          <div class="formGrid">
+
+          <div class="row2">
             <div class="field">
-              <div class="label">Сотрудник (фильтр: ${state.empDept})</div>
-              <select class="select" data-k="employeeId" data-i="${idx}">
-                ${employeeOptionsHTML(s.employeeId)}
+              <div class="label">С</div>
+              <input class="input" placeholder="10:00" value="${s.from || ""}" data-k="from" data-i="${idx}" />
+            </div>
+            <div class="field">
+              <div class="label">По</div>
+              <input class="input" placeholder="18:00" value="${s.to || ""}" data-k="to" data-i="${idx}" />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <div class="label">Отдел</div>
+              <select class="select" data-k="dept" data-i="${idx}">
+                <option value="delivery">delivery</option>
+                <option value="kitchen">kitchen</option>
+                <option value="call">call</option>
               </select>
             </div>
-
-            <div class="row2">
-              <div class="field">
-                <div class="label">С (время)</div>
-                <input class="input" placeholder="10:00" value="${s.from || ""}" data-k="from" data-i="${idx}" />
-              </div>
-              <div class="field">
-                <div class="label">По (время)</div>
-                <input class="input" placeholder="18:00" value="${s.to || ""}" data-k="to" data-i="${idx}" />
-              </div>
-            </div>
-
-            <div class="row2">
-              <div class="field">
-                <div class="label">Отдел</div>
-                <select class="select" data-k="dept" data-i="${idx}">
-                  <option value="delivery">delivery</option>
-                  <option value="kitchen">kitchen</option>
-                  <option value="call">call</option>
-                </select>
-              </div>
-              <div class="field">
-                <div class="label">Должность (текст)</div>
-                <input class="input" placeholder="Курьер / Повар / Оператор" value="${s.role || ""}" data-k="role" data-i="${idx}" />
-              </div>
-            </div>
-
             <div class="field">
-              <div class="label">Заметка</div>
-              <input class="input" placeholder="Замена / Подмена / и т.д." value="${s.note || ""}" data-k="note" data-i="${idx}" />
-            </div>
-
-            <div style="display:flex; gap:10px; justify-content:flex-end">
-              <button class="btn danger small" type="button" data-action="delShift" data-i="${idx}">Удалить</button>
+              <div class="label">Должность</div>
+              <input class="input" placeholder="Курьер / Повар / Оператор" value="${s.role || ""}" data-k="role" data-i="${idx}" />
             </div>
           </div>
+
+          <div class="field">
+            <div class="label">Заметка</div>
+            <input class="input" placeholder="Замена / Подмена…" value="${s.note || ""}" data-k="note" data-i="${idx}" />
+          </div>
+
+          <div style="display:flex; gap:10px; justify-content:flex-end">
+            <button class="btn danger small" type="button" data-action="delShift" data-i="${idx}">Удалить</button>
+          </div>
         </div>
-        <div class="badge accent">#${idx+1}</div>
-      `;
+      </div>
+      <div class="badge accent">#${idx+1}</div>
+    `;
 
-      list.appendChild(row);
+    list.appendChild(row);
 
-      const empSel = row.querySelector(`select[data-k="employeeId"][data-i="${idx}"]`);
-      if(empSel) empSel.value = s.employeeId || "";
+    const empSel = row.querySelector(`select[data-k="employeeId"][data-i="${idx}"]`);
+    if(empSel) empSel.value = s.employeeId || "";
 
-      const deptSel = row.querySelector(`select[data-k="dept"][data-i="${idx}"]`);
-      if(deptSel) deptSel.value = s.dept || "delivery";
-    });
-  }
+    const deptSel = row.querySelector(`select[data-k="dept"][data-i="${idx}"]`);
+    if(deptSel) deptSel.value = s.dept || "delivery";
+  });
 
   qs("#editSub").textContent = (state.edit.filterDept === "all")
     ? `Смен: ${state.edit.shifts.length}`
@@ -467,7 +436,7 @@ function bindEditorEvents(){
     s[k] = el.value;
 
     if(k === "employeeId"){
-      const emp = (state.data?.employees || []).find(x => x.id === s.employeeId);
+      const emp = (state.data.employees || []).find(x => x.id === s.employeeId);
       if(emp){
         s.dept = emp.dept || s.dept;
         if(!s.role) s.role = emp.role || s.role;
@@ -489,7 +458,7 @@ function bindEditorEvents(){
   });
 
   qs("#addShiftBtn").addEventListener("click", ()=>{
-    const emps = state.data?.employees || [];
+    const emps = state.data.employees || [];
     const emp = emps[0];
 
     const deptDefault =
@@ -505,37 +474,37 @@ function bindEditorEvents(){
       to: "",
       note: ""
     });
-
     renderEditorList();
   });
 
   qs("#quickAddBtn").addEventListener("click", ()=>{
     const empId = qs("#quickEmp").value;
     const tplId = qs("#quickTpl").value;
-    const emp = (state.data?.employees || []).find(e => e.id === empId);
-    const tpl = (state.templates || []).find(t => t.id === tplId);
+
+    const emp = (state.data.employees || []).find(e => e.id === empId);
+    const tpl = (state.data.templates || []).find(t => t.id === tplId);
 
     if(!empId || !emp){
-      toast("bad","Не выбран сотрудник","Выбери сотрудника для быстрого добавления.");
+      toast("bad","Не выбран сотрудник","Выбери сотрудника.");
       return;
     }
     if(!tplId || !tpl){
-      toast("bad","Не выбран шаблон","Сначала создай/выбери шаблон смены.");
+      toast("bad","Не выбран шаблон","Создай/выбери шаблон времени.");
       return;
     }
 
     const deptFinal =
       (state.edit.filterDept && state.edit.filterDept !== "all")
         ? state.edit.filterDept
-        : (tpl.dept || emp.dept || "delivery");
+        : (emp.dept || "delivery");
 
     state.edit.shifts.push({
       employeeId: emp.id,
       dept: deptFinal,
-      role: tpl.role || emp.role || "",
+      role: emp.role || "",
       from: tpl.from || "",
       to: tpl.to || "",
-      note: tpl.note || ""
+      note: ""
     });
 
     renderEditorList();
@@ -545,7 +514,7 @@ function bindEditorEvents(){
     applyEditorToData();
     closeModal(modal);
     renderCalendar();
-    toast("good", "Готово", "День обновлён локально. Нажми “Сохранить в GitHub”, чтобы записать в репозиторий.");
+    toast("good", "День применён", "Теперь нажми “Сохранить в GitHub”, чтобы записать изменения.");
   });
 }
 
@@ -565,36 +534,22 @@ function applyEditorToData(){
     }));
 
   let result = clean;
-
   if(state.edit.filterDept && state.edit.filterDept !== "all"){
-    result = [...clean, ...(state.edit.otherShifts || [])];
-    result = sortShifts(result);
+    result = sortShifts([...clean, ...(state.edit.otherShifts || [])]);
   }
 
-  if(!state.data.days) state.data.days = {};
   if(result.length === 0) delete state.data.days[iso];
   else state.data.days[iso] = result;
 
-  state.data.meta = state.data.meta || {};
   state.data.meta.updatedAt = new Date().toISOString();
 }
 
-/* ---------------- Employees CRUD ---------------- */
-
-function employeeUsed(employeeId){
-  const days = state.data?.days || {};
-  for(const iso of Object.keys(days)){
-    const arr = days[iso] || [];
-    if(arr.some(s => s.employeeId === employeeId)) return true;
-  }
-  return false;
-}
+/* ---------------- Employees modal (persist in data) ---------------- */
 
 function renderEmployeesList(){
   const modalOpen = qs("#employeesModal")?.getAttribute("data-open")==="1";
   if(!modalOpen) return;
 
-  ensureEmployees();
   const q = norm(qs("#empSearch").value).toLowerCase();
   const list = qs("#empList");
   list.innerHTML = "";
@@ -617,8 +572,6 @@ function renderEmployeesList(){
   }
 
   for(const e of filtered){
-    const used = employeeUsed(e.id);
-
     const row = document.createElement("div");
     row.className = "shiftRow";
     row.innerHTML = `
@@ -627,7 +580,9 @@ function renderEmployeesList(){
           <div class="name">${e.name || "Без имени"}</div>
           <div class="meta">${e.dept || "—"} • ${e.role || "—"} • id: ${e.id}</div>
         </div>
+
         <div class="hr"></div>
+
         <div class="row2">
           <div class="field">
             <div class="label">Имя</div>
@@ -649,7 +604,6 @@ function renderEmployeesList(){
         </div>
 
         <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
-          <span class="badge ${used ? "warn" : "good"}">${used ? "используется" : "свободен"}</span>
           <button class="btn danger small" type="button" data-empaction="del" data-empid="${e.id}">Удалить</button>
         </div>
       </div>
@@ -681,13 +635,12 @@ function bindEmployees(){
   qs("#empSearch").addEventListener("input", renderEmployeesList);
 
   qs("#addEmpBtn").addEventListener("click", ()=>{
-    ensureEmployees();
     const id = genId("e");
     const deptDefault = (state.empDept !== "all") ? state.empDept : "delivery";
     state.data.employees.push({ id, name:"", dept:deptDefault, role:"" });
     renderEmployeesList();
     refreshAllEmployeeSelects();
-    toast("good","Сотрудник добавлен","Заполни имя/отдел/роль.");
+    toast("good","Добавлено","Теперь нажми “Применить”, затем “Сохранить в GitHub”.");
   });
 
   modal.addEventListener("input", (e)=>{
@@ -696,12 +649,11 @@ function bindEmployees(){
     const k = el.dataset.empk;
     if(!empId || !k) return;
 
-    const emp = (state.data?.employees || []).find(x => x.id === empId);
+    const emp = (state.data.employees || []).find(x => x.id === empId);
     if(!emp) return;
 
     emp[k] = el.value;
 
-    // если поменяли dept сотрудника — обновим список и селекты
     if(k === "dept"){
       renderEmployeesList();
       refreshAllEmployeeSelects();
@@ -714,47 +666,40 @@ function bindEmployees(){
 
     if(btn.dataset.empaction === "del"){
       const empId = btn.dataset.empid;
-      if(!empId) return;
-
-      if(employeeUsed(empId)){
-        toast("warn","Нельзя удалить","Этот сотрудник уже стоит в сменах.");
-        return;
-      }
-
       state.data.employees = (state.data.employees || []).filter(x => x.id !== empId);
       renderEmployeesList();
       refreshAllEmployeeSelects();
-      toast("good","Удалено","Сотрудник удалён из списка.");
+      toast("good","Удалено","Сотрудник удалён из списка (в старых сменах останется employeeId).");
+      return;
     }
+  });
+
+  qs("#applyEmpBtn").addEventListener("click", ()=>{
+    state.data.meta.updatedAt = new Date().toISOString();
+    toast("good","Сотрудники применены","Теперь нажми “Сохранить в GitHub”.");
+    closeModal(modal);
   });
 }
 
-/* ---------------- Templates ---------------- */
-
-function ensureDefaultTemplates(){
-  if(Array.isArray(state.templates) && state.templates.length) return;
-  state.templates = [
-    { id: genId("tpl"), label:"День 10–18", dept:"delivery", role:"", from:"10:00", to:"18:00", note:"" },
-    { id: genId("tpl"), label:"День 12–20", dept:"kitchen", role:"", from:"12:00", to:"20:00", note:"" },
-    { id: genId("tpl"), label:"Офис 09–17", dept:"call", role:"", from:"09:00", to:"17:00", note:"" }
-  ];
-  setTemplates(state.templates);
-}
+/* ---------------- Templates modal (persist in data) ---------------- */
 
 function renderTemplatesList(){
+  const modalOpen = qs("#templatesModal")?.getAttribute("data-open")==="1";
+  if(!modalOpen) return;
+
   const list = qs("#tplList");
   list.innerHTML = "";
 
-  const tpls = (state.templates || [])
+  const tpls = (state.data.templates || [])
     .slice()
     .sort((a,b)=>String(a.label||"").localeCompare(String(b.label||""), "ru"));
 
   if(tpls.length === 0){
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = "Шаблонов нет. Нажми “Новый шаблон”.";
+    empty.textContent = "Шаблонов нет. Нажми “+ Новый”.";
     list.appendChild(empty);
-    renderQuickSelectors();
+    refreshTemplateSelect();
     return;
   }
 
@@ -764,10 +709,12 @@ function renderTemplatesList(){
     row.innerHTML = `
       <div style="flex:1">
         <div class="shiftMain">
-          <div class="name">${t.label || "Без названия"}</div>
-          <div class="meta">${t.from || "—"}–${t.to || "—"} • ${t.dept || "—"} • ${t.role || "роль не указана"}${t.note ? " • " + t.note : ""}</div>
+          <div class="name">${t.label || "Шаблон"}</div>
+          <div class="meta">${t.from || "—"}–${t.to || "—"}</div>
         </div>
+
         <div class="hr"></div>
+
         <div class="formGrid">
           <div class="field">
             <div class="label">Название</div>
@@ -785,27 +732,7 @@ function renderTemplatesList(){
             </div>
           </div>
 
-          <div class="row2">
-            <div class="field">
-              <div class="label">Отдел</div>
-              <select class="select" data-tplk="dept" data-tplid="${t.id}">
-                <option value="delivery">delivery</option>
-                <option value="kitchen">kitchen</option>
-                <option value="call">call</option>
-              </select>
-            </div>
-            <div class="field">
-              <div class="label">Роль (текст)</div>
-              <input class="input" data-tplk="role" data-tplid="${t.id}" value="${t.role || ""}" placeholder="Курьер / Повар / Оператор" />
-            </div>
-          </div>
-
-          <div class="field">
-            <div class="label">Заметка</div>
-            <input class="input" data-tplk="note" data-tplid="${t.id}" value="${t.note || ""}" placeholder="Замена / Подмена…" />
-          </div>
-
-          <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap">
+          <div style="display:flex; gap:10px; justify-content:flex-end">
             <button class="btn danger small" type="button" data-tplaction="del" data-tplid="${t.id}">Удалить</button>
           </div>
         </div>
@@ -813,12 +740,9 @@ function renderTemplatesList(){
       <div class="badge accent">tpl</div>
     `;
     list.appendChild(row);
-
-    const deptSel = row.querySelector(`select[data-tplk="dept"][data-tplid="${t.id}"]`);
-    if(deptSel) deptSel.value = t.dept || "delivery";
   }
 
-  renderQuickSelectors();
+  refreshTemplateSelect();
 }
 
 function bindTemplates(){
@@ -831,30 +755,19 @@ function bindTemplates(){
       openModal(qs("#authModal"));
       return;
     }
-
-    ensureDefaultTemplates();
-    state.templates = getTemplates();
-    renderTemplatesList();
     openModal(modal);
+    renderTemplatesList();
   });
 
   qs("#addTplBtn").addEventListener("click", ()=>{
-    ensureDefaultTemplates();
-    state.templates = getTemplates();
-
-    state.templates.push({
+    state.data.templates.push({
       id: genId("tpl"),
       label: "Новый шаблон",
-      dept: "delivery",
-      role: "",
       from: "",
-      to: "",
-      note: ""
+      to: ""
     });
-
-    setTemplates(state.templates);
     renderTemplatesList();
-    toast("good","Шаблон добавлен","Отредактируй поля.");
+    toast("good","Шаблон добавлен","Отредактируй и нажми “Применить”.");
   });
 
   modal.addEventListener("input", (e)=>{
@@ -863,12 +776,11 @@ function bindTemplates(){
     const k = el.dataset.tplk;
     if(!tplId || !k) return;
 
-    const t = (state.templates || []).find(x => x.id === tplId);
+    const t = (state.data.templates || []).find(x => x.id === tplId);
     if(!t) return;
 
     t[k] = el.value;
-    setTemplates(state.templates);
-    renderQuickSelectors();
+    refreshTemplateSelect();
   });
 
   modal.addEventListener("click", (e)=>{
@@ -877,11 +789,18 @@ function bindTemplates(){
 
     if(btn.dataset.tplaction === "del"){
       const tplId = btn.dataset.tplid;
-      state.templates = (state.templates || []).filter(x => x.id !== tplId);
-      setTemplates(state.templates);
+      state.data.templates = (state.data.templates || []).filter(x => x.id !== tplId);
       renderTemplatesList();
       toast("good","Удалено","Шаблон удалён.");
+      return;
     }
+  });
+
+  qs("#applyTplBtn").addEventListener("click", ()=>{
+    state.data.meta.updatedAt = new Date().toISOString();
+    refreshTemplateSelect();
+    toast("good","Шаблоны применены","Теперь нажми “Сохранить в GitHub”.");
+    closeModal(modal);
   });
 }
 
@@ -894,11 +813,7 @@ function buildSearchIndex(){
   for(const iso of Object.keys(days)){
     for(const sh of (days[iso] || [])){
       const emp = emps.find(e => e.id === sh.employeeId);
-      res.push({
-        iso,
-        shift: sh,
-        empName: emp?.name || sh.employeeId || ""
-      });
+      res.push({ iso, shift: sh, empName: emp?.name || sh.employeeId || "" });
     }
   }
   return res;
@@ -919,9 +834,7 @@ function renderSearchResults(){
 
   const idx = buildSearchIndex();
   const hits = idx.filter(x => {
-    const hay =
-      `${x.empName} ${x.shift.role||""} ${x.shift.dept||""} ${x.shift.from||""} ${x.shift.to||""} ${x.shift.note||""}`
-        .toLowerCase();
+    const hay = `${x.empName} ${x.shift.role||""} ${x.shift.dept||""} ${x.shift.from||""} ${x.shift.to||""} ${x.shift.note||""}`.toLowerCase();
     return hay.includes(q);
   }).slice(0, 60);
 
@@ -985,14 +898,11 @@ async function loadFromGitHubOrLocal(){
     if(r.ok && r.json){
       state.data = r.json;
       state.fileSha = r.sha;
-      toast("good", "Данные загружены", "shifts.json загружен через GitHub API.");
       return;
     }
-    toast("warn", "GitHub недоступен", "Не удалось загрузить через API. Пробую локально (read-only).");
   }
-
   const res = await fetch(`./data/shifts.json?ts=${Date.now()}`);
-  if(!res.ok) throw new Error("Не удалось загрузить локальный shifts.json");
+  if(!res.ok) throw new Error("Не удалось загрузить shifts.json");
   state.data = await res.json();
   state.fileSha = null;
 }
@@ -1010,15 +920,10 @@ async function saveToGitHub(){
   const cur = await ghGetJsonFile({ token: state.token, repoFull: state.repoFull, path: FILE_PATH });
   if(cur.ok){
     if(state.fileSha && cur.sha && state.fileSha !== cur.sha){
-      toast("warn", "Файл обновился", "shifts.json изменился на сервере. Нажми “Обновить” и проверь правки, чтобы не затереть чужие.");
+      toast("warn","Файл обновился","Нажми “Обновить”, чтобы не затереть чужие изменения.");
       return;
     }
     state.fileSha = cur.sha;
-  } else {
-    if(cur.status !== 404){
-      toast("bad", "Ошибка GitHub", `Не могу проверить файл: ${cur.status}`);
-      return;
-    }
   }
 
   const msg = `smena: update shifts (${new Date().toISOString()})`;
@@ -1032,7 +937,7 @@ async function saveToGitHub(){
   });
 
   if(!put.ok){
-    toast("bad", "Сохранение не удалось", `GitHub: ${put.status}. Проверь токен/права/sha.`);
+    toast("bad","Сохранение не удалось",`GitHub: ${put.status}`);
     console.error(put.error);
     return;
   }
@@ -1040,7 +945,7 @@ async function saveToGitHub(){
   const newSha = put.data?.content?.sha || null;
   if(newSha) state.fileSha = newSha;
 
-  toast("good", "Сохранено", "Изменения записаны в репозиторий.");
+  toast("good","Сохранено","Изменения записаны в репозиторий.");
 }
 
 /* ---------------- Settings & Auth ---------------- */
@@ -1061,16 +966,17 @@ function bindSettings(){
     setToken(state.token);
     closeModal(qs("#settingsModal"));
     renderHeader();
-    toast("good", "Настройки сохранены", "Репозиторий/токен сохранены на этом устройстве.");
+    toast("good","Настройки сохранены","OK");
   });
 
   qs("#reloadBtn").addEventListener("click", async ()=>{
     try{
       await loadFromGitHubOrLocal();
+      ensureDataShape();
       renderCalendar();
-      toast("good", "Перезагружено", "Данные обновлены.");
+      toast("good","Обновлено","Данные перезагружены.");
     }catch(e){
-      toast("bad", "Ошибка", String(e.message || e));
+      toast("bad","Ошибка", String(e.message || e));
     }
   });
 
@@ -1093,10 +999,10 @@ function bindAuth(){
     if(hex === ADMIN_PASSWORD_SHA256){
       setAdmin(true);
       closeModal(modal);
-      toast("good", "Вход выполнен", "Доступ к админке открыт.");
+      toast("good","Вход выполнен","OK");
       qs("#lockedState").textContent = "Доступ: ОК";
     } else {
-      toast("bad", "Неверный пароль", "Проверь пароль администратора.");
+      toast("bad","Неверный пароль","Проверь пароль.");
     }
   });
 
@@ -1130,23 +1036,24 @@ async function init(){
   buildEmpDeptPills();
 
   await loadFromGitHubOrLocal();
+  ensureDataShape();
 
-  if(!Array.isArray(state.templates) || !state.templates.length){
-    state.templates = [
-      { id: genId("tpl"), label:"День 10–18", dept:"delivery", role:"", from:"10:00", to:"18:00", note:"" },
-      { id: genId("tpl"), label:"День 12–20", dept:"kitchen", role:"", from:"12:00", to:"20:00", note:"" },
-      { id: genId("tpl"), label:"Офис 09–17", dept:"call", role:"", from:"09:00", to:"17:00", note:"" }
+  // дефолтные шаблоны времени (если пусто)
+  if(state.data.templates.length === 0){
+    state.data.templates = [
+      { id: genId("tpl"), label:"День 10–18", from:"10:00", to:"18:00" },
+      { id: genId("tpl"), label:"День 12–20", from:"12:00", to:"20:00" },
+      { id: genId("tpl"), label:"Офис 09–17", from:"09:00", to:"17:00" }
     ];
-    setTemplates(state.templates);
-  } else {
-    state.templates = getTemplates();
   }
 
   state.selectedISO = todayISO();
   renderCalendar();
+  refreshAllEmployeeSelects();
+  refreshTemplateSelect();
 }
 
 init().catch(err=>{
   console.error(err);
-  toast("bad", "Критическая ошибка", String(err.message || err));
+  toast("bad","Критическая ошибка", String(err.message || err));
 });
