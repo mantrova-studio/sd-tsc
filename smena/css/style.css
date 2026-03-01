@@ -28,16 +28,22 @@
 
 *{box-sizing:border-box}
 html,body{height:100%}
+
 body{
   margin:0;
   font-family:var(--font);
-  background:
-    radial-gradient(1100px 700px at 12% -10%, rgba(124,92,255,.18), transparent 60%),
-    radial-gradient(900px 500px at 90% 0%, rgba(46,229,157,.10), transparent 55%),
-    radial-gradient(900px 700px at 70% 110%, rgba(255,204,102,.08), transparent 60%),
-    var(--bg);
   color:var(--text);
+
+  /* Premium static gradient */
+  background:
+    radial-gradient(900px 600px at 20% 0%, rgba(124,92,255,.12), transparent 62%),
+    radial-gradient(900px 600px at 90% 10%, rgba(46,229,157,.08), transparent 58%),
+    radial-gradient(1100px 800px at 55% 120%, rgba(255,204,102,.06), transparent 62%),
+    var(--bg);
+  background-attachment: fixed;
 }
+
+body.modalOpen{ overflow:hidden; }
 
 a{color:inherit; text-decoration:none}
 button,input,select,textarea{font-family:inherit}
@@ -97,20 +103,23 @@ button,input,select,textarea{font-family:inherit}
 .iconBtn img{width:16px; height:16px; opacity:.9}
 
 .pillRow{
-  display:flex; flex-wrap:wrap;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center; /* centered */
   gap:10px;
   margin-top:14px;
 }
 
 .pill{
   height:40px;
-  padding:0 14px;
+  padding:0 16px;
   border-radius:999px;
   border:1px solid var(--line);
   background: rgba(255,255,255,.03);
   color:var(--text);
   display:inline-flex;
   align-items:center;
+  justify-content:center;
   gap:10px;
   cursor:pointer;
   transition: transform .12s ease, border-color .12s ease, background .12s ease;
@@ -123,8 +132,7 @@ button,input,select,textarea{font-family:inherit}
   background: linear-gradient(180deg, rgba(124,92,255,.16), rgba(255,255,255,.03));
   box-shadow: 0 10px 24px rgba(124,92,255,.10);
 }
-.pill .k{font-size:12px; color:var(--muted)}
-.pill .v{font-size:13px; font-weight:600}
+.pill .v{font-size:13px; font-weight:700; letter-spacing:.2px}
 
 .grid{
   display:grid;
@@ -233,14 +241,15 @@ button,input,select,textarea{font-family:inherit}
 }
 .day:hover{transform: translateY(-1px); border-color: var(--line2); background: rgba(255,255,255,.04)}
 .day:active{transform: translateY(0)}
-.day[data-out="1"]{
-  opacity:.42;
-}
+.day[data-out="1"]{ opacity:.42; }
+
 .dayNum{
   font-weight:800;
   letter-spacing:.2px;
   font-size:14px;
+  color: var(--text); /* force white numbers */
 }
+
 .day[data-today="1"]{
   border-color: rgba(46,229,157,.48);
   background: linear-gradient(180deg, rgba(46,229,157,.11), rgba(255,255,255,.02));
@@ -249,6 +258,7 @@ button,input,select,textarea{font-family:inherit}
   border-color: rgba(124,92,255,.60);
   background: linear-gradient(180deg, rgba(124,92,255,.14), rgba(255,255,255,.02));
 }
+
 .dot{
   position:absolute;
   left:10px;
@@ -309,8 +319,14 @@ button,input,select,textarea{font-family:inherit}
   padding:18px;
 }
 .modal[data-open="1"]{display:flex}
+
+/* IMPORTANT: scrollable modal */
 .modalCard{
   width:min(740px, 100%);
+  max-height: min(80vh, 760px);
+  display:flex;
+  flex-direction:column;
+
   border-radius: 22px;
   border:1px solid var(--line);
   background: linear-gradient(180deg, rgba(11,16,25,.96), rgba(11,16,25,.90));
@@ -324,6 +340,7 @@ button,input,select,textarea{font-family:inherit}
   gap:12px;
   padding:14px 14px;
   border-bottom:1px solid var(--line);
+  flex: 0 0 auto;
 }
 .modalHeader .left .t{
   font-weight:850;
@@ -342,7 +359,13 @@ button,input,select,textarea{font-family:inherit}
   color:var(--text);
   cursor:pointer;
 }
-.modalBody{padding:14px}
+
+.modalBody{
+  padding:14px;
+  overflow:auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
+}
 
 .list{
   display:flex;
@@ -451,7 +474,32 @@ button,input,select,textarea{font-family:inherit}
 }
 
 @media (max-width:720px){
-  .monthLabel{min-width: 140px}
+  .monthLabel{min-width: 120px}
+
+  .topbarInner{
+    flex-wrap:wrap;
+    align-items:flex-start;
+  }
+  .actions{
+    width:100%;
+    justify-content:flex-end;
+    flex-wrap:wrap;
+  }
+  .monthNav{
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    gap:8px;
+  }
+
   .day{height:56px}
   .row2{grid-template-columns:1fr}
+
+  .pill{
+    height:42px;
+    padding:0 16px;
+  }
+
+  .modalCard{
+    max-height: 84vh;
+  }
 }
