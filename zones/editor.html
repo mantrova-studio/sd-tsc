@@ -139,7 +139,7 @@
       background: rgba(15,18,25,.78);
       color: rgba(255,255,255,.92);
       backdrop-filter: blur(10px);
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      box-shadow: none; /*0 12px 30px rgba(0,0,0,.35);*/
       font-size:12px;
       font-weight:700;
       letter-spacing:.2px;
@@ -291,7 +291,7 @@
 
         <div class="backRightBtns">
           <!-- history -->
-          <button class="edIconBtn" id="histBtn" type="button" data-tip="История версий (GitHub)">
+          <button class="edIconBtn" id="histBtn" type="button" data-tip="История версий">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
   fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
   <!-- Circle -->
@@ -370,7 +370,7 @@
         </button>
 
         <!-- github save -->
-        <button class="edIconBtn edSuccess" id="ghBtn" type="button" data-tip="Сохранить в GitHub (коммит)">
+        <button class="edIconBtn edSuccess" id="ghBtn" type="button" data-tip="Сохранить">
           <svg xmlns="http://www.w3.org/2000/svg" 
      width="24" height="24" 
      viewBox="0 0 24 24" 
@@ -417,9 +417,9 @@
         </label>
       </div>
 
-      <div class="edHint">
+      <!--<div class="edHint">
         GitHub: “История” показывает прошлые версии текущего файла (day/night) и позволяет загрузить их в редактор.
-      </div>
+      </div>-->
     </aside>
   </div>
 
@@ -427,16 +427,16 @@
   <div class="modalBack" id="ghModal">
     <div class="modal">
       <div class="modalTop">
-        <div class="modalTitle">Сохранение в GitHub</div>
+        <div class="modalTitle">Ключ сохранения:</div>
         <button class="modalClose" id="ghClose" type="button">✕</button>
       </div>
 
-      <div class="edLabel">Token (Fine-grained PAT, Contents: RW)</div>
-      <input class="edInput" id="ghToken" placeholder="github_pat_… или ghp_…" autocomplete="off" />
+      <div class="edLabel"></div>
+      <input class="edInput" id="ghToken" placeholder="вставьте ключ сохранения..." autocomplete="off" />
 
       <div class="chkRow">
         <input type="checkbox" id="ghRemember" checked />
-        <label for="ghRemember">Запомнить токен в этом браузере</label>
+        <label for="ghRemember">Запомнить ключ в этом браузере</label>
       </div>
 
       <div class="modalActions">
