@@ -1,0 +1,10 @@
+<!--
+  © POLIHOV DEV STUDIO
+  Файл: editor-icon-4.svg
+  Описание: Иконка интерфейса редактора зон (вынесено из HTML).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16h16V8z" stroke-width="2"/>
+            <path d="M14 2v6h6" stroke-width="2"/>
+            <text x="7" y="16" font-size="6" fill="currentColor">geo</text>
+          </svg>

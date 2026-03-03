@@ -1,0 +1,24 @@
+<!--
+  © POLIHOV DEV STUDIO
+  Файл: editor-icon-2.svg
+  Описание: Иконка интерфейса редактора зон (вынесено из HTML).
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="24"
+     height="24"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="white"
+     stroke-width="1.8"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+
+  <!-- Верхняя дуга -->
+  <path d="M4 12a8 8 0 0 1 13-6"/>
+  <polyline points="17 3 17 7 13 7"/>
+
+  <!-- Нижняя дуга -->
+  <path d="M20 12a8 8 0 0 1-13 6"/>
+  <polyline points="7 21 7 17 11 17"/>
+
+</svg>
