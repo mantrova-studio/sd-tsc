@@ -9,7 +9,7 @@ const REPO_FULL = "mantrova-studio/sd-tsc";
 /* ==========================
    ✅ Обычный пароль (как просил)
 ========================== */
-const ADMIN_PASSWORD = "2468"; // <-- поставь свой пароль
+const ADMIN_PASSWORD = "601/18"; // <-- поставь свой пароль
 
 const DEPTS = [
   { id: "all", label: "Все" },
