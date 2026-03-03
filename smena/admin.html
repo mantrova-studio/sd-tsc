@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=1100, viewport-fit=cover" />
-  <title>Админка смен — SD TSC</title>
+  <title>Панель администратора - Сытная доставка</title>
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
@@ -74,7 +74,7 @@
             <!--<button class="btn small" id="reloadBtn" type="button">Обновить</button>-->
             <button class="btn small primary" id="saveBtn" type="button">
               <img src="./assets/icons/save.svg" alt="" style="width:16px;height:16px;opacity:.9">
-              Сохранить в GitHub
+              Сохранить
             </button>
           </div>
         </div>
@@ -87,7 +87,7 @@
         <div class="footerHint">
           <div class="note">
             • “Применить” в окнах меняет данные локально.<br/>
-            • Чтобы записать в репозиторий — нажми “Сохранить в GitHub”.
+            • Чтобы сохранить изменения на сервер — нажми “Сохранить”.
           </div>
           <div>© POLIHOV DEV STUDIO</div>
         </div>
@@ -101,7 +101,7 @@
       <div class="modalHeader">
         <div class="left">
           <div class="t">Вход в админку</div>
-          <div class="s">Пароль проверяется по SHA-256 (в коде хранится хэш)</div>
+          <div class="s"> </div>
         </div>
         <button class="modalClose" type="button">✕</button>
       </div>
@@ -114,10 +114,10 @@
           <div class="rightActions">
             <button class="btn primary" id="loginBtn" type="button">Войти</button>
           </div>
-          <div class="note">
+          <!--<div class="note">
             Чтобы задать свой пароль — открой консоль и вызови <code>__printHash("пароль")</code>,
             затем вставь хэш в <code>ADMIN_PASSWORD_SHA256</code>.
-          </div>
+          </div>-->
         </div>
       </div>
     </div>
@@ -128,16 +128,16 @@
     <div class="modalCard">
       <div class="modalHeader">
         <div class="left">
-          <div class="t">GitHub token</div>
-          <div class="s">Нужен только для “Сохранить в GitHub”</div>
+          <div class="t">Ключ сохранения:</div>
+          <!--<div class="s">Нужен только для “Сохранить в GitHub”</div>-->
         </div>
         <button class="modalClose" type="button">✕</button>
       </div>
       <div class="modalBody">
         <div class="formGrid">
           <div class="field">
-            <div class="label">GitHub token (PAT)</div>
-            <input class="input" id="tokenInput" placeholder="ghp_..." />
+            <div class="label"> </div>
+            <input class="input" id="tokenInput" placeholder="вставьте ключ сохранения..." />
           </div>
 
           <div class="rightActions">
@@ -145,9 +145,9 @@
             <button class="btn primary" id="saveSettingsBtn" type="button">Сохранить</button>
           </div>
 
-          <div class="note">
+          <!--<div class="note">
             Репозиторий фиксированный: <b>mantrova-studio/sd-tsc</b>. Права token: <b>repo</b> или <b>contents:write</b>.
-          </div>
+          </div>-->
         </div>
       </div>
     </div>
@@ -185,7 +185,7 @@
         <div class="list" id="empList"></div>
 
         <div class="note">
-          “Применить” фиксирует изменения. Затем нажми “Сохранить в GitHub”.
+          “Применить” фиксирует изменения. Затем нажми “Сохранить”.
         </div>
       </div>
     </div>
