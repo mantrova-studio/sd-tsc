@@ -881,7 +881,7 @@ input[type="search"]::-webkit-search-decoration{
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(10,10,18,.72);
   backdrop-filter: blur(14px);
-  box-shadow: 0 18px 60px rgba(0,0,0,.55);
+  box-shadow: none; /*0 18px 60px rgba(0,0,0,.55);*/
   color: rgba(255,255,255,.92);
   font-size: 12px;
   line-height: 1.25;
