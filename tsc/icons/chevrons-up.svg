@@ -1,0 +1,9 @@
+<!--
+  © POLIHOV DEV STUDIO
+  Файл: chevrons-up.svg
+  Описание: Иконка 'вверх' (скролл/свернуть).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none">
+    <path d="M12 5l-6 6M12 5l6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M12 5v14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+  </svg>
