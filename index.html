@@ -1,0 +1,83 @@
+<!doctype html>
+<!--
+  © POLIHOV DEV STUDIO
+  Файл: index.html
+  Описание: Landing-страница навигации по проектам SD/TSC/ZONES/SMENA.
+-->
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>СЫТНАЯ ДОСТАВКА</title>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+
+<body>
+
+  <h1>СЫТНАЯ ДОСТАВКА</h1>
+  <div class="subtitle">Технологический портал для сотрудников компании</div>
+
+  <div class="buttons">
+    <a href="#" class="btn btn-dev">График смен</a>
+    <a href="tsc" class="btn">Технологические карты</a>
+    <!-- <a href="#" class="btn btn-dev">Заполнить анкету соискателя</a> -->
+  </div>
+
+  <div class="zoneBtn">
+  <span class="zoneLabel">Зоны доставки</span>
+
+  <div class="zoneActions">
+    <a class="zoneIconBtn" href="zones/zones.html?mode=day" title="Дневные зоны">
+      <img src="assets/icons/day.svg" alt="day" />
+    </a>
+
+    <a class="zoneIconBtn" href="zones/zones.html?mode=night" title="Ночные зоны">
+      <img src="assets/icons/night.svg" alt="night" />
+    </a>
+  </div>
+</div>
+  
+<div id="devToast" class="toast">В разработке</div>
+
+<script>
+  let toastTimer;
+
+  function showDevToast(){
+    const toast = document.getElementById("devToast");
+    toast.classList.add("show");
+
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{
+      toast.classList.remove("show");
+    }, 1800);
+  }
+
+  document.querySelectorAll(".btn-dev").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      e.preventDefault();
+
+      // лёгкий shake у кнопки
+      btn.classList.remove("shake");
+      void btn.offsetWidth; // перезапуск анимации
+      btn.classList.add("shake");
+
+      showDevToast();
+    });
+  });
+</script>
+
+<footer class="footer">
+  <div>Разработано</div>
+  <div>© POLIHOV DEV STUDIO</div>
+</footer>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
