@@ -1,0 +1,60 @@
+<!doctype html>
+<!--
+  © POLIHOV DEV STUDIO
+  Файл: dish.html
+  Описание: Страница сайта TSC (dish.html).
+-->
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Блюдо — Технологическая карта</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="container">
+      <div class="backRow">
+        <button class="backBtn" id="backBtn" type="button">
+          <img src="assets/icons/back.svg" alt="back" />
+          <span>Назад</span>
+        </button>
+
+        <div class="pillRow">
+          <button class="smallBtn" id="favBtn" type="button" title="Избранное">
+            <img src="assets/icons/bookmark.svg" alt="fav" />
+            Избранное
+          </button>
+          <button class="smallBtn" id="copyBtn" type="button" title="Скопировать описание">
+            <img src="assets/icons/copy.svg" alt="copy" />
+            Копировать
+          </button>
+          <button class="smallBtn primary u-hidden" id="printBtn"  type="button" title="Печать техкарты">
+            <img src="assets/icons/print.svg" alt="print" />
+            Печать
+          </button>
+        </div>
+      </div>
+
+      <div class="headerRow u-pt0" >
+        <h1 class="siteTitle">Технологическая карта</h1>
+      </div>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="detailCard u-hidden" id="card" >
+      <img class="cardImg" id="photo" src="" alt="" />
+      <div class="detailBody">
+        <div class="meta" id="meta"></div>
+        <h2 class="h2" id="name"></h2>
+        <div class="desc" id="desc"></div>
+      </div>
+    </div>
+
+    <div class="empty u-hidden" id="err" ></div>
+  </main>
+
+  <script type="module" src="js/dish.js"></script>
+</body>
+</html>
