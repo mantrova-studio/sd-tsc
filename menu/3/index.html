@@ -82,14 +82,14 @@
   .item-volume { font-family: "BaskervilleMenu", "Times New Roman", serif; font-style: italic; font-size: 2.65mm; line-height: 3.1mm; color: var(--blue); text-align: right; white-space: nowrap; padding-bottom: .25mm; }
   .item-price { font-family: "TildaSans", Arial, sans-serif; font-weight: 800; font-size: 4.01mm; line-height: 4.5mm; text-align: right; color: var(--black); white-space: nowrap; }
   .item-desc { margin-top: .25mm; width: 58.5mm; font-family: "TildaSans", Arial, sans-serif; font-weight: 600; font-size: 2.55mm; line-height: 3.0mm; color: var(--black); white-space: pre-line; overflow-wrap: anywhere; }
-  .density-compact .menu-item { margin-bottom: 1.62mm; }
-  .density-compact .item-name { font-size: 3.78mm; line-height: 4.34mm; }
-  .density-compact .item-desc { font-size: 2.35mm; line-height: 2.72mm; }
-  .density-compact .section-title { margin-bottom: 2.4mm; }
+  .density-compact .menu-item { margin-bottom: 1.0mm; }
+  .density-compact .item-name { font-size: 3.25mm; line-height: 3.65mm; }
+  .density-compact .item-desc { font-size: 2.05mm; line-height: 2.30mm; }
+  .density-compact .section-title { margin-bottom: 1.5mm; font-size: 6.9mm; line-height: 7.1mm; }
   .brand-logo { position: absolute; left: 273.4mm; top: 72.3mm; width: 90mm; height: auto; z-index: 1; }
-  .brand-title { position: absolute; font-family: "Mamontov", Georgia, serif; font-weight: 900; color: var(--red); font-size: 28.25mm; line-height: .95; letter-spacing: .035em; text-transform: uppercase; z-index: 1; }
-  .brand-title.one { left: 249.8mm; top: 103.5mm; }
-  .brand-title.two { left: 262.8mm; top: 132.8mm; }
+  .brand-title { position: absolute; left: 244mm; width: 150mm; text-align: center; font-family: "Mamontov", Georgia, serif; font-weight: 900; color: var(--red); font-size: 27.6mm; line-height: .92; letter-spacing: .024em; text-transform: uppercase; z-index: 1; }
+  .brand-title.one { top: 103.5mm; }
+  .brand-title.two { top: 132.2mm; }
   .bottom-strip { position: absolute; left: 0; bottom: 0; width: 424mm; height: auto; z-index: 0; }
 
   .fold-line { position: absolute; left: 212mm; top: 0; bottom: 0; border-left: .25mm dashed rgba(1,70,108,.18); z-index: 10; pointer-events: none; }
@@ -142,7 +142,7 @@
       <div class="topbar">
         <div><strong>Предпросмотр печатного меню</strong><div id="layoutStats" class="meta">424×301 мм · PDF</div></div>
         <div class="row">
-          <button class="secondary" onclick="autoSortCategories()">Авто сортировка</button>
+          <button class="secondary" onclick="autoSortCategories()">Авторасстановка</button>
           <button class="secondary" onclick="window.print()">Печать / Save as PDF</button>
           <button onclick="window.print()">Скачать PDF</button>
         </div>
@@ -154,7 +154,7 @@
   <div id="toast" class="toast"></div>
 
 <script>
-const STORAGE_KEY = 'kraken-print-menu-folder-3-v1';
+const STORAGE_KEY = 'kraken-print-menu-folder-3-v2';
 const AUTH_KEY = 'kraken-print-menu-auth-v1';
 const AUTH_PASSWORD = '5555';
 const DEFAULT_STATE = {
@@ -317,7 +317,7 @@ const DEFAULT_STATE = {
     {
       "id": "c_03",
       "title": "Супы",
-      "breakBefore": "column",
+      "breakBefore": "auto",
       "items": [
         {
           "id": "i_03_01",
@@ -401,7 +401,7 @@ const DEFAULT_STATE = {
     {
       "id": "c_06",
       "title": "Горячее",
-      "breakBefore": "column",
+      "breakBefore": "auto",
       "items": [
         {
           "id": "i_06_01",
@@ -527,7 +527,7 @@ const DEFAULT_STATE = {
     {
       "id": "c_08",
       "title": "Мидии",
-      "breakBefore": "page",
+      "breakBefore": "auto",
       "items": [
         {
           "id": "i_08_01",
@@ -702,7 +702,7 @@ const DEFAULT_STATE = {
     {
       "id": "c_11",
       "title": "Ролл доги",
-      "breakBefore": "column",
+      "breakBefore": "auto",
       "items": [
         {
           "id": "i_11_01",
@@ -842,7 +842,7 @@ const DEFAULT_STATE = {
     {
       "id": "c_13",
       "title": "Тёплые роллы",
-      "breakBefore": "column",
+      "breakBefore": "auto",
       "items": [
         {
           "id": "i_13_01",
@@ -905,7 +905,7 @@ const DEFAULT_STATE = {
     {
       "id": "c_14",
       "title": "Соусы и хлеб",
-      "breakBefore": "column",
+      "breakBefore": "auto",
       "items": [
         {
           "id": "i_14_01",
@@ -1081,7 +1081,8 @@ function createItemNode(item) {
   return wrap;
 }
 
-function addBookletGuides(page, pageIndex) {
+function addBookletGuides(page, pageIndex, options = {}) {
+  if (!state.settings.showDecor) return;
   const fold = document.createElement('div');
   fold.className = 'fold-line';
   page.appendChild(fold);
@@ -1089,12 +1090,9 @@ function addBookletGuides(page, pageIndex) {
   left.className = 'booklet-note left';
   const right = document.createElement('div');
   right.className = 'booklet-note right';
-  if (state.settings.keepBrandPage && pageIndex === 1) {
-    left.textContent = 'последняя страница / задняя обложка';
+  if (options.cover) {
+    left.textContent = options.hasBackContent ? 'последняя страница / меню' : 'последняя страница / задняя обложка';
     right.textContent = '1 страница / обложка';
-  } else if (pageIndex === 0) {
-    left.textContent = '2 страница';
-    right.textContent = '3 страница';
   } else {
     const n = pageIndex * 2 + 2;
     left.textContent = n + ' страница';
@@ -1103,44 +1101,41 @@ function addBookletGuides(page, pageIndex) {
   page.append(left, right);
 }
 
-function bookletBinInfo(index) {
-  // Порядок чтения сложенной книжки: лист с контентом слева направо, затем левая половина листа с обложкой.
-  if (index < 4) return { page: 0, col: index, logicalPage: index < 2 ? 2 : 3 };
-  if (index < 6) return { page: 1, col: index - 4, logicalPage: 'last' };
-  const rest = index - 6;
-  return { page: 2 + Math.floor(rest / 4), col: rest % 4, logicalPage: 4 + Math.floor(rest / 2) };
-}
-
-function createPage(host, pageIndex) {
+function createPage(host, pageIndex, options = {}) {
   const wrap = document.createElement('div');
   wrap.className = 'pdf-page-wrap';
   const page = document.createElement('section');
-  page.className = 'pdf-page page-' + (pageIndex + 1);
-  if (state.settings.showDecor && state.settings.keepBrandPage && pageIndex === 1) {
+  page.className = 'pdf-page page-' + (pageIndex + 1) + (options.cover ? ' cover-page' : '');
+  if (state.settings.showDecor && state.settings.keepBrandPage && options.cover) {
     const logo = document.createElement('img'); logo.className = 'brand-logo'; logo.src = LOGO_SRC; logo.alt = '';
     const one = document.createElement('div'); one.className = 'brand-title one'; one.textContent = 'МЕНЮ';
     const two = document.createElement('div'); two.className = 'brand-title two'; two.textContent = 'КРАКЕН';
     const strip = document.createElement('img'); strip.className = 'bottom-strip'; strip.src = BOTTOM_SRC; strip.alt = '';
     page.append(logo, one, two, strip);
   }
-  addBookletGuides(page, pageIndex);
-  const count = (state.settings.keepBrandPage && pageIndex === 1) ? 2 : 4;
+  addBookletGuides(page, pageIndex, options);
+  const count = options.cover ? 2 : 4;
   const columns = [];
   for (let i = 0; i < count; i++) { const col = document.createElement('div'); col.className = 'menu-column col-' + i; page.appendChild(col); columns.push(col); }
   wrap.appendChild(page); host.appendChild(wrap);
-  return { wrap, page, columns, pageIndex };
+  return { wrap, page, columns, pageIndex, cover: !!options.cover };
 }
 function renderPreview() {
   document.body.classList.toggle('density-compact', state.settings.density === 'compact');
   const host = document.getElementById('previewPages');
   host.innerHTML = '';
+
+  const staging = document.createElement('div');
+  staging.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none;';
+  document.body.appendChild(staging);
+
   const pages = [];
-  let page = createPage(host, 0); pages.push(page);
+  let page = createPage(staging, 0, { cover: false }); pages.push(page);
   let colIndex = 0;
   function currentColumn() { return page.columns[colIndex]; }
   function pageHasContent(p) { return p.columns.some(c => c.children.length > 0); }
   function freshColumn() { return currentColumn().children.length === 0; }
-  function nextPage() { page = createPage(host, pages.length); pages.push(page); colIndex = 0; }
+  function nextPage() { page = createPage(staging, pages.length, { cover: false }); pages.push(page); colIndex = 0; }
   function nextColumn() { if (colIndex < page.columns.length - 1) colIndex++; else nextPage(); }
   function forcePage() { if (pageHasContent(page)) nextPage(); }
   function forceColumn() { if (!freshColumn()) nextColumn(); }
@@ -1176,9 +1171,38 @@ function renderPreview() {
       }
     });
   });
-  if (state.settings.keepBrandPage && pages.length < 2) { pages.push(createPage(host, 1)); }
+
+  const usedColumns = [];
+  pages.forEach(p => p.columns.forEach(col => {
+    if (col.children.length > 0) usedColumns.push(col.cloneNode(true));
+  }));
+  staging.remove();
+
+  let mainColumnsCount = usedColumns.length;
+  let coverColumns = [];
+  if (state.settings.keepBrandPage) {
+    const rem = usedColumns.length % 4;
+    if (usedColumns.length > 4 && (rem === 1 || rem === 2)) {
+      mainColumnsCount = usedColumns.length - rem;
+      coverColumns = usedColumns.slice(mainColumnsCount);
+    }
+  }
+
+  let visiblePageIndex = 0;
+  for (let i = 0; i < mainColumnsCount; i += 4) {
+    const p = createPage(host, visiblePageIndex++, { cover: false });
+    usedColumns.slice(i, i + 4).forEach((src, idx) => { p.columns[idx].innerHTML = src.innerHTML; });
+  }
+  if (state.settings.keepBrandPage) {
+    const p = createPage(host, visiblePageIndex++, { cover: true, hasBackContent: coverColumns.length > 0 });
+    coverColumns.forEach((src, idx) => { if (p.columns[idx]) p.columns[idx].innerHTML = src.innerHTML; });
+  }
+  if (!host.children.length) createPage(host, 0, { cover: false });
+
+  const pageCount = host.querySelectorAll('.pdf-page').length;
   const totalItems = state.categories.reduce((sum, c) => sum + (c.items?.length || 0), 0);
-  document.getElementById('layoutStats').textContent = `${pages.length} лист. · книжка: стр.2 → стр.3 → последняя/обложка · ${state.categories.length} категорий · ${totalItems} позиций`;
+  const contentNote = state.settings.keepBrandPage ? ' · обложка вынесена в конец, внутренние развороты заполняются подряд' : '';
+  document.getElementById('layoutStats').textContent = `${pageCount} лист. · книжка: стр.2 → стр.3 → далее по порядку → обложка${contentNote} · ${state.categories.length} категорий · ${totalItems} позиций`;
 }
 
 function measureCategory(category) {
@@ -1194,39 +1218,12 @@ function mmToPx(mm) { return mm * 96 / 25.4; }
 function binInfo(index) { return bookletBinInfo(index); }
 function autoSortCategories() {
   normalizeState();
-  const active = state.activeCategoryId;
-  const measure = document.getElementById('measureColumn');
-  const capacity = measure.clientHeight || mmToPx(260);
-  const gap = mmToPx(5.2);
-  const entries = state.categories.map((cat, index) => ({ cat, index, h: measureCategory(cat) })).sort((a,b) => b.h - a.h || a.index - b.index);
-  const bins = [];
-  function ensureBin(i) { while (bins.length <= i) bins.push({ used: 0, cats: [] }); return bins[i]; }
-  for (const entry of entries) {
-    let best = -1;
-    let bestRemain = Infinity;
-    for (let i = 0; i < bins.length; i++) {
-      const add = bins[i].used > 0 ? gap : 0;
-      const need = entry.h + add;
-      const remain = capacity - bins[i].used - need;
-      if (remain >= 0 && remain < bestRemain) { best = i; bestRemain = remain; }
-    }
-    if (best === -1) best = bins.length;
-    const bin = ensureBin(best);
-    bin.used += entry.h + (bin.used > 0 ? gap : 0);
-    bin.cats.push(entry.cat);
-  }
-  const nextCategories = [];
-  bins.forEach((bin, binIndex) => {
-    const info = binInfo(binIndex);
-    bin.cats.forEach((cat, idx) => {
-      cat.breakBefore = idx === 0 ? (binIndex === 0 ? 'auto' : (info.col === 0 ? 'page' : 'column')) : 'auto';
-      nextCategories.push(cat);
-    });
-  });
-  state.categories = nextCategories;
-  state.activeCategoryId = state.categories.some(c => c.id === active) ? active : state.categories[0]?.id;
+  // Авторасстановка больше не перемешивает категории. Она убирает ручные переносы,
+  // а сам макет дальше заполняет колонки подряд как книжку: внутренние развороты — полностью,
+  // обложка — отдельным последним листом.
+  state.categories.forEach(cat => { cat.breakBefore = 'auto'; });
   renderAll();
-  toast('Категории расставлены в порядке книжки. Обложка остается справа.');
+  toast('Авторасстановка включена: категории идут по порядку, пустые места внутри книжки убраны.');
 }
 
 function renderSettings() {
@@ -1241,7 +1238,7 @@ function renderSettings() {
         <option value="compact" ${s.density === 'compact' ? 'selected' : ''}>Плотнее</option>
       </select></div>
     </div>
-    <div class="field"><label><input type="checkbox" style="width:auto" ${s.keepBrandPage ? 'checked' : ''} onchange="setSetting('keepBrandPage', this.checked)"> Фирменная зона на второй странице</label></div>
+    <div class="field"><label><input type="checkbox" style="width:auto" ${s.keepBrandPage ? 'checked' : ''} onchange="setSetting('keepBrandPage', this.checked)"> Обложка последним листом</label></div>
     <div class="field"><label><input type="checkbox" style="width:auto" ${s.showDecor ? 'checked' : ''} onchange="setSetting('showDecor', this.checked)"> Логотип и нижняя графика</label></div>
     <div class="row"><button class="small secondary" onclick="logout()">Сбросить вход</button></div>
   `;
@@ -1256,8 +1253,8 @@ function renderCategories() {
       </div>
     </div>`).join('');
   document.getElementById('categoryCard').innerHTML = `
-    <div class="row between"><h3>Категории</h3><div class="row"><button class="small secondary" onclick="autoSortCategories()">Авто сортировка</button><button class="small" onclick="addCategory()">+ категория</button></div></div>
-    <div class="hint" style="margin-bottom:10px">Авто сортировка учитывает книжку: лист 1 слева = стр. 2, лист 1 справа = стр. 3, лист 2 слева = последняя, справа остается обложка.</div>
+    <div class="row between"><h3>Категории</h3><div class="row"><button class="small secondary" onclick="autoSortCategories()">Авторасстановка</button><button class="small" onclick="addCategory()">+ категория</button></div></div>
+    <div class="hint" style="margin-bottom:10px">Авторасстановка не перемешивает категории: меню заполняет внутренние развороты подряд, а обложка «МЕНЮ КРАКЕН» уходит последним листом.</div>
     <div class="category-list">${list}</div>`;
 }
 function renderItems() {
